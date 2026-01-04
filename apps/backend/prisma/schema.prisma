@@ -1,0 +1,99 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  currency      String    @default("INR") // Default based on your location
+  createdAt     DateTime  @default(now())
+  transactions  Transaction[]
+  budgets       Budget[]
+  receipts      Receipt[]
+  recurringPlans RecurringPlan[]
+}
+
+model Transaction {
+  id              String   @id @default(cuid())
+  amount          Decimal  @db.Decimal(12, 2)
+  currency        String
+  type            TransactionType @default(EXPENSE)
+  category        Category? @relation(fields: [categoryId], references: [id])
+  categoryId      String?
+  description     String?  // The original text input
+  merchant        String?  // Extracted by AI
+  date            DateTime @default(now())
+  
+  // AI Metadata
+  isAiGenerated   Boolean  @default(false)
+  confidenceScore Float?   // How sure was the AI about this entry?
+  
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  receiptId       String?  @unique
+  receipt         Receipt? @relation(fields: [receiptId], references: [id])
+
+  recurringPlanId String?
+  recurringPlan   RecurringPlan? @relation(fields: [recurringPlanId], references: [id])
+}
+
+model RecurringPlan {
+  id           String        @id @default(cuid())
+  amount       Decimal       @db.Decimal(12, 2)
+  currency     String        @default("INR")
+  type         TransactionType @default(EXPENSE)
+  name         String        // e.g. "Netflix", "Rent"
+  frequency    String        // "monthly", "weekly", "yearly"
+  nextDueDate  DateTime
+  isActive     Boolean       @default(true)
+  
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Category {
+  id           String    @id @default(cuid())
+  name         String    @unique
+  icon         String?   // Lucide or FontAwesome icon name
+  color        String?   // Hex code
+  transactions Transaction[]
+}
+
+model Receipt {
+  id           String   @id @default(cuid())
+  imageUrl     String   // URL from GCP Storage
+  rawText      String?  // Full OCR output for future searching
+  processedAt  DateTime @default(now())
+  transaction  Transaction?
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  amount     Decimal  @db.Decimal(12, 2)
+  period     String   @default("monthly") // weekly, monthly, yearly
+  startDate  DateTime
+  endDate    DateTime
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+}

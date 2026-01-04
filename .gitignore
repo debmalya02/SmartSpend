@@ -1,0 +1,38 @@
+# General
+node_modules/
+.DS_Store
+.env
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Backend (NestJS)
+apps/backend/dist/
+apps/backend/coverage/
+apps/backend/*.tsbuildinfo
+
+# Mobile (Expo / React Native)
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/web-build/
+apps/mobile/*.jks
+apps/mobile/*.keystore
+apps/mobile/*.pem
+
+# Generated Native folders (if you eject or generate prebuilds)
+# apps/mobile/android/
+# apps/mobile/ios/
+
+# Prisma
+apps/backend/prisma/*.db
+apps/backend/prisma/*.db-journal
+
+# Artifacts & System
+.gemini/
+.agent/
