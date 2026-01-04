@@ -31,7 +31,7 @@ export default function LedgerScreen() {
               </Text>
             </View>
             <View style={styles.cardFooter}>
-              <Text style={styles.category}>{item.category.name}</Text>
+              <Text style={styles.category}>{item.category?.name || 'Uncategorized'}</Text>
               <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
             </View>
             <Text style={styles.description}>{item.description}</Text>
