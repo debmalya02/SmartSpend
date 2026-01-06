@@ -10,11 +10,11 @@ export class ExpensesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly geminiService: GeminiService,
-  ) {}
+  ) { }
 
   async addExpenseViaAI(userId: string, text: string) {
     this.logger.log(`Processing AI expense for user ${userId}: ${text}`);
-    
+
     // 1. Get parsed data from Gemini
     const aiData = await this.geminiService.parseExpense(text);
     this.logger.log(`AI Response: ${JSON.stringify(aiData)}`);
@@ -29,7 +29,7 @@ export class ExpensesService {
         data: {
           name: aiData.category,
           // Default icon/color could be enhanced later
-          icon: 'help-circle', 
+          icon: 'help-circle',
           color: '#cccccc',
         },
       });
@@ -70,6 +70,48 @@ export class ExpensesService {
       orderBy: { date: 'desc' },
       include: {
         category: true,
+      },
+    });
+  }
+  async createTransaction(userId: string, data: any) {
+    const { amount, merchant, date, category, receiptUrl, description } = data;
+
+    // 1. Find or create category
+    let cat = await this.prisma.category.findUnique({
+      where: { name: category },
+    });
+
+    if (!cat) {
+      cat = await this.prisma.category.create({
+        data: {
+          name: category,
+          icon: 'tag',
+          color: '#cccccc',
+        },
+      });
+    }
+
+    // 3. Create Transaction
+    return this.prisma.transaction.create({
+      data: {
+        amount,
+        currency: data.currency || 'INR',
+        merchant,
+        date: new Date(date),
+        description: description || `Receipt from ${merchant}`,
+        type: 'EXPENSE',
+        category: { connect: { id: cat.id } },
+        user: { connect: { id: userId } },
+        receipt: receiptUrl ? {
+          create: {
+            imageUrl: receiptUrl,
+            user: { connect: { id: userId } }
+          }
+        } : undefined,
+      },
+      include: {
+        category: true,
+        receipt: true,
       },
     });
   }

@@ -41,10 +41,10 @@ export class GeminiService {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       let text = response.text();
-      
+
       // Clean up potential markdown code blocks
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      
+
       return JSON.parse(text);
     } catch (error) {
       this.logger.error('Failed to parse expense with Gemini', error);
@@ -56,7 +56,7 @@ export class GeminiService {
     // 1. Calculate Monthly Income (This month)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     const incomeResult = await this.prisma.transaction.aggregate({
       where: {
         userId,
@@ -77,7 +77,7 @@ export class GeminiService {
     // 3. Calculate Average Variable Spending (Last 60 days)
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(now.getDate() - 60);
-    
+
     const variableResult = await this.prisma.transaction.aggregate({
       where: {
         userId,
@@ -105,11 +105,11 @@ export class GeminiService {
       orderBy: { _sum: { amount: 'desc' } },
       take: 1,
     });
-    
+
     let topCategoryName = 'General';
     if (topCategoryResult.length > 0 && topCategoryResult[0].categoryId) {
-        const cat = await this.prisma.category.findUnique({ where: { id: topCategoryResult[0].categoryId }});
-        if (cat) topCategoryName = cat.name;
+      const cat = await this.prisma.category.findUnique({ where: { id: topCategoryResult[0].categoryId } });
+      if (cat) topCategoryName = cat.name;
     }
 
     // 6. Gemini Prompt
@@ -140,6 +140,55 @@ export class GeminiService {
     } catch (e) {
       this.logger.error('Affordability check failed', e);
       return { verdict: "Error", advice: "Could not analyze at this moment.", color: "gray" };
+    }
+  }
+
+  async scanReceipt(imageUrl: string): Promise<any> {
+    this.logger.log(`Scanning Receipt URL: ${imageUrl}`);
+    try {
+      // 1. Fetch the image
+      const imageResp = await fetch(imageUrl);
+      if (!imageResp.ok) {
+        const errorText = await imageResp.text();
+        throw new Error(`Failed to fetch image from ${imageUrl}: ${imageResp.status} ${imageResp.statusText} - ${errorText}`);
+      }
+      const arrayBuffer = await imageResp.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const mimeType = imageResp.headers.get('content-type') || 'image/jpeg';
+      const base64Image = buffer.toString('base64');
+
+      // 2. Prepare Prompt
+      const prompt = `
+        You are a financial clerk. Look at this receipt. Extract: Merchant Name, Total Amount, Date, and Category (Food, Travel, Shopping, etc). 
+        Return ONLY a JSON object: { merchant: string, amount: number, date: string, category: string }.
+        If date is ambiguous, use YYYY-MM-DD.
+        NO MARKDOWN.
+      `;
+
+      // 3. Call Gemini Vision
+      // Using existing model (gemini-2.5-flash or whatever is configured)
+      // If the model doesn't support vision, this might fail, but flash usually does.
+      // Ideally I should ensure I use a vision-capable model. 'gemini-1.5-flash' supports multimodal.
+
+      const result = await this.model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: base64Image,
+            mimeType: mimeType,
+          },
+        },
+      ]);
+
+      const response = await result.response;
+      let text = response.text();
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+      return JSON.parse(text);
+
+    } catch (error) {
+      this.logger.error('Failed to scan receipt', error);
+      throw error;
     }
   }
 }

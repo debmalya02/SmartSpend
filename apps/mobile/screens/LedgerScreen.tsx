@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useExpenseStore } from '../stores/useExpenseStore';
 import { VibeInput } from '../components/VibeInput';
+import ScanReceiptModal from '../components/ScanReceiptModal';
+import { ScanLine } from 'lucide-react-native';
 
 export default function LedgerScreen() {
   const { expenses, fetchExpenses } = useExpenseStore();
+  const [showScan, setShowScan] = useState(false);
 
   useEffect(() => {
     fetchExpenses();
@@ -13,10 +16,17 @@ export default function LedgerScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Ledger</Text>
-      
+
       <View style={styles.inputSection}>
-        <VibeInput />
+        <View style={{ flex: 1 }}>
+          <VibeInput />
+        </View>
+        <TouchableOpacity style={styles.scanButton} onPress={() => setShowScan(true)}>
+          <ScanLine color="white" size={24} />
+        </TouchableOpacity>
       </View>
+
+      <ScanReceiptModal visible={showScan} onClose={() => setShowScan(false)} />
 
       <FlatList
         data={expenses}
@@ -39,7 +49,7 @@ export default function LedgerScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-             <Text style={styles.emptyText}>No transactions yet.</Text>
+            <Text style={styles.emptyText}>No transactions yet.</Text>
           </View>
         }
       />
@@ -50,7 +60,20 @@ export default function LedgerScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f7' },
   header: { fontSize: 32, fontWeight: '700', margin: 20 },
-  inputSection: { paddingHorizontal: 20, marginBottom: 10 },
+  inputSection: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 10 },
+  scanButton: {
+    backgroundColor: '#007AFF',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 11,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
   emptyState: { alignItems: 'center', marginTop: 50 },
   emptyText: { color: '#999', fontSize: 16 },

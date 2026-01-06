@@ -8,12 +8,16 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RecurringModule } from './recurring/recurring.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     ScheduleModule.forRoot(),
-    ExpensesModule, 
-    GeminiModule, 
+    ExpensesModule,
+    GeminiModule,
     PrismaModule,
     RecurringModule,
     DashboardModule,
@@ -21,4 +25,4 @@ import { DashboardModule } from './dashboard/dashboard.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
