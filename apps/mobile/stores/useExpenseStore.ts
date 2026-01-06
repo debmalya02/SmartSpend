@@ -39,7 +39,8 @@ interface RecurringPlan {
 }
 
 // Replace with your actual local IP if testing on real device, or localhost for simulator
-const API_URL = 'http://192.168.0.177:3000'; 
+// const API_URL = 'http://192.168.0.177:3000';
+const API_URL = 'https://smartspend-h9vm.onrender.com'; 
 
 export const useExpenseStore = create<ExpenseStore>((set) => ({
   expenses: [],
