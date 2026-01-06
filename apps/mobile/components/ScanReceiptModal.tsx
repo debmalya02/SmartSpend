@@ -17,7 +17,7 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
     const [image, setImage] = useState<string | null>(null);
     const [status, setStatus] = useState<'idle' | 'uploading' | 'scanning' | 'review'>('idle');
     const [scannedData, setScannedData] = useState<any>(null);
-    const { scanReceipt, addTransaction } = useExpenseStore();
+    const { scanReceipt, addTransaction, loading } = useExpenseStore();
 
     const pulseAnim = useRef(new Animated.Value(0.6)).current;
 
@@ -46,13 +46,13 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
                 result = await ImagePicker.launchCameraAsync({
                     mediaTypes: ImagePicker.MediaTypeOptions.Images,
                     allowsEditing: true,
-                    quality: 0.5,
+                    quality: 0.25,
                 });
             } else {
                 result = await ImagePicker.launchImageLibraryAsync({
                     mediaTypes: ImagePicker.MediaTypeOptions.Images,
                     allowsEditing: true,
-                    quality: 0.5,
+                    quality: 0.25,
                 });
             }
 
@@ -144,67 +144,81 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
 
         if (status === 'review' && scannedData) {
             return (
-                <ScrollView style={styles.formContainer}>
-                    <Text style={styles.title}>Confirm Entry</Text>
-                    <Image source={{ uri: image! }} style={styles.previewImageParams} />
+                <View style={{ flex: 1 }}>
+                    <ScrollView 
+                        style={styles.formContainer} 
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 20 }}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        <Text style={styles.title}>Confirm Entry</Text>
+                        <Image source={{ uri: image! }} style={styles.previewImageParams} />
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Merchant</Text>
-                        <View style={styles.inputWrapper}>
-                            <Store size={20} color={COLORS.textSecondary} />
-                            <TextInput
-                                style={styles.input}
-                                value={scannedData.merchant}
-                                onChangeText={(t) => setScannedData({ ...scannedData, merchant: t })}
-                            />
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Merchant</Text>
+                            <View style={styles.inputWrapper}>
+                                <Store size={20} color={COLORS.textSecondary} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={scannedData.merchant}
+                                    onChangeText={(t) => setScannedData({ ...scannedData, merchant: t })}
+                                />
+                            </View>
                         </View>
-                    </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Amount</Text>
-                        <View style={styles.inputWrapper}>
-                            <DollarSign size={20} color={COLORS.textSecondary} />
-                            <TextInput
-                                style={styles.input}
-                                value={String(scannedData.amount)}
-                                keyboardType="numeric"
-                                onChangeText={(t) => setScannedData({ ...scannedData, amount: parseFloat(t) || 0 })}
-                            />
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Amount</Text>
+                            <View style={styles.inputWrapper}>
+                                <DollarSign size={20} color={COLORS.textSecondary} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={String(scannedData.amount)}
+                                    keyboardType="numeric"
+                                    onChangeText={(t) => setScannedData({ ...scannedData, amount: parseFloat(t) || 0 })}
+                                />
+                            </View>
                         </View>
-                    </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Date</Text>
-                        <View style={styles.inputWrapper}>
-                            <Calendar size={20} color={COLORS.textSecondary} />
-                            <TextInput
-                                style={styles.input}
-                                value={scannedData.date}
-                                onChangeText={(t) => setScannedData({ ...scannedData, date: t })}
-                            />
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Date</Text>
+                            <View style={styles.inputWrapper}>
+                                <Calendar size={20} color={COLORS.textSecondary} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={scannedData.date}
+                                    onChangeText={(t) => setScannedData({ ...scannedData, date: t })}
+                                />
+                            </View>
                         </View>
-                    </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Category</Text>
-                        <View style={styles.inputWrapper}>
-                            <Tag size={20} color={COLORS.textSecondary} />
-                            <TextInput
-                                style={styles.input}
-                                value={scannedData.category}
-                                onChangeText={(t) => setScannedData({ ...scannedData, category: t })}
-                            />
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Category</Text>
+                            <View style={styles.inputWrapper}>
+                                <Tag size={20} color={COLORS.textSecondary} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={scannedData.category}
+                                    onChangeText={(t) => setScannedData({ ...scannedData, category: t })}
+                                />
+                            </View>
                         </View>
+                    </ScrollView>
+
+                    <View style={{ paddingTop: SPACING.m, paddingBottom: SPACING.l }}>
+                        <TouchableOpacity onPress={handleConfirm} disabled={loading} style={{ width: '100%' }}>
+                            <View style={styles.confirmButton}>
+                                {loading ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <>
+                                        <Check color="white" size={24} style={{ marginRight: 8 }} />
+                                        <Text style={styles.confirmText}>Save Transaction</Text>
+                                    </>
+                                )}
+                            </View>
+                        </TouchableOpacity>
                     </View>
-
-                    <TouchableOpacity onPress={handleConfirm}>
-                        <LinearGradient colors={GRADIENTS.success as [string, string]} style={styles.confirmButton}>
-                            <Check color="white" size={24} style={{ marginRight: 8 }} />
-                            <Text style={styles.confirmText}>Save Transaction</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
-                </ScrollView>
+                </View>
             );
         }
         return null;
@@ -334,7 +348,6 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
         borderRadius: BORDER_RADIUS.s,
         paddingHorizontal: SPACING.m,
-        paddingVertical: SPACING.s,
         height: 50,
     },
     input: {
@@ -342,20 +355,22 @@ const styles = StyleSheet.create({
         marginLeft: SPACING.s,
         fontSize: 16,
         color: COLORS.text,
+        height: '100%',
+        textAlignVertical: 'center',
+        paddingVertical: 0,
     },
     confirmButton: {
         flexDirection: 'row',
         height: 56,
-        borderRadius: BORDER_RADIUS.m,
+        backgroundColor: COLORS.primary,
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: SPACING.m,
-        marginBottom: SPACING.xl,
         ...SHADOWS.medium,
     },
     confirmText: {
         color: 'white',
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
     },
 });

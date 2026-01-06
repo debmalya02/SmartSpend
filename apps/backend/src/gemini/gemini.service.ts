@@ -67,12 +67,18 @@ export class GeminiService {
     });
     const monthlyIncome = incomeResult._sum.amount?.toNumber() || 0;
 
-    // 2. Calculate Total Fixed Expenses (Recurring Plans)
-    const recurringResult = await this.prisma.recurringPlan.aggregate({
+    // 2. Calculate Total Fixed Expenses (Recurring Plans) & Recurring Income
+    const recurringPlans = await this.prisma.recurringPlan.findMany({
       where: { userId, isActive: true },
-      _sum: { amount: true },
     });
-    const fixedExpenses = recurringResult._sum.amount?.toNumber() || 0;
+
+    const fixedExpenses = recurringPlans
+      .filter((p) => p.type === 'EXPENSE')
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+
+    const recurringIncome = recurringPlans
+      .filter((p) => p.type === 'INCOME')
+      .reduce((sum, p) => sum + Number(p.amount), 0);
 
     // 3. Calculate Average Variable Spending (Last 60 days)
     const sixtyDaysAgo = new Date();
@@ -91,7 +97,9 @@ export class GeminiService {
     const avgVariableExpenses = totalVariable60Days / 2; // Monthly average
 
     // 4. Calculate Surplus
-    const surplus = monthlyIncome - fixedExpenses - avgVariableExpenses;
+    // Heuristic: Use greater of Actual vs Recurring Income to estimate total monthly availability
+    const effectiveIncome = Math.max(monthlyIncome, recurringIncome);
+    const surplus = effectiveIncome - fixedExpenses - avgVariableExpenses;
 
     // 5. Identify Top Spending Category
     const topCategoryResult = await this.prisma.transaction.groupBy({
@@ -115,16 +123,17 @@ export class GeminiService {
     // 6. Gemini Prompt
     const prompt = `
       User Financial Context:
-      - Monthly Income: ${monthlyIncome}
+      - Income (Received So Far): ${monthlyIncome}
+      - Income (Expected/Recurring): ${recurringIncome}
       - Fixed Expenses (Bills/Subs): ${fixedExpenses}
       - Avg Variable Spending: ${avgVariableExpenses}
-      - Current Monthly Surplus: ${surplus}
+      - Current Estimated Surplus: ${surplus}
       - Top Expense Category: ${topCategoryName}
       
       User Query: "${query}"
       
       Task: Provide a friendly financial verdict based on the user's query and their financial stats.
-      - If they ask if they can afford something, analyze the cost vs surplus.
+      - If they ask if they can afford something, analyze the cost vs estimated surplus.
       - If the query is vague, give general advice based on their stats.
       - Keep it short, encouraging, and emoji-friendly.
       - Return a JSON object with fields: { "verdict": "string", "advice": "string", "color": "green" | "yellow" | "red" }

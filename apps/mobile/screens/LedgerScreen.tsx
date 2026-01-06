@@ -1,17 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { useExpenseStore } from '../stores/useExpenseStore';
 import { VibeInput } from '../components/VibeInput';
 import ScanReceiptModal from '../components/ScanReceiptModal';
-import { ScanLine } from 'lucide-react-native';
+import { ScanLine, Trash2 } from 'lucide-react-native';
 
 export default function LedgerScreen() {
-  const { expenses, fetchExpenses } = useExpenseStore();
+  const { expenses, fetchExpenses, deleteTransaction } = useExpenseStore();
   const [showScan, setShowScan] = useState(false);
 
   useEffect(() => {
     fetchExpenses();
   }, []);
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      "Delete Transaction",
+      "Are you sure you want to delete this?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: () => deleteTransaction(id) 
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -42,7 +57,12 @@ export default function LedgerScreen() {
             </View>
             <View style={styles.cardFooter}>
               <Text style={styles.category}>{item.category?.name || 'Uncategorized'}</Text>
-              <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
+                <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ marginLeft: 12 }}>
+                  <Trash2 size={18} color="#FF3B30" />
+                </TouchableOpacity>
+              </View>
             </View>
             <Text style={styles.description}>{item.description}</Text>
           </View>

@@ -115,4 +115,13 @@ export class ExpensesService {
       },
     });
   }
+
+  async deleteTransaction(userId: string, id: string) {
+    return this.prisma.transaction.deleteMany({
+      where: {
+        id,
+        userId,
+      },
+    });
+  }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Query } from '@nestjs/common';
+import { Body, Controller, Post, Get, Query, Delete, Param } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 
 @Controller('expenses')
@@ -20,5 +20,10 @@ export class ExpensesController {
     // Expecting body to contain userId and transaction details
     const { userId, ...data } = body;
     return this.expensesService.createTransaction(userId, data);
+  }
+
+  @Delete(':id')
+  async deleteTransaction(@Param('id') id: string, @Query('userId') userId: string) {
+    return this.expensesService.deleteTransaction(userId, id);
   }
 }

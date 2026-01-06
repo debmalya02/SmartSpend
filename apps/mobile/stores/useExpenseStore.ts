@@ -29,6 +29,7 @@ interface ExpenseStore {
   fetchDashboardStats: () => Promise<void>;
   scanReceipt: (imageUrl: string) => Promise<any>;
   addTransaction: (data: any) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
 }
 
 interface RecurringPlan {
@@ -41,12 +42,12 @@ interface RecurringPlan {
 }
 
 // Replace with your actual local IP if testing on real device, or localhost for simulator
-const API_URL = 'http://192.168.1.45:3000'; // Local Machine IP
+const API_URL = 'http://192.168.0.177:3000'; // Local Machine IP
 // const API_URL = 'http://10.0.2.2:3000'; // For Android Emulator
 // const API_URL = 'http://localhost:3000'; // For iOS Simulator
 // const API_URL = 'https://smartspend-h9vm.onrender.com'; // Production
 
-export const useExpenseStore = create<ExpenseStore>((set) => ({
+export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   expenses: [],
   recurringPlans: [],
   dashboardStats: null,
@@ -180,6 +181,26 @@ export const useExpenseStore = create<ExpenseStore>((set) => ({
       console.error("Create failed", error);
       set({ loading: false, error: 'Failed to save transaction' });
       throw error;
+    }
+  },
+  deleteTransaction: async (id: string) => {
+    // Optimistic Update
+    set((state) => ({
+      expenses: state.expenses.filter((e) => e.id !== id),
+    }));
+
+    try {
+      const userId = 'test-user-id';
+      const response = await fetch(`${API_URL}/expenses/${id}?userId=${userId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete');
+      }
+    } catch (error) {
+      console.error("Delete failed", error);
+      // Revert or fetch to sync
+      get().fetchExpenses();
     }
   }
 }));

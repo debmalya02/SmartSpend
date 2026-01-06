@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bot, Send } from 'lucide-react-native';
 
@@ -39,6 +39,11 @@ export default function AiCoachScreen() {
             <Text style={m.role === 'user' ? styles.userText : styles.systemText}>{m.text}</Text>
           </View>
         ))}
+        {loading && (
+          <View style={[styles.bubble, styles.systemBubble, { width: 60, alignItems: 'center' }]}>
+            <ActivityIndicator color="#007AFF" size="small" />
+          </View>
+        )}
       </ScrollView>
       <View style={styles.inputArea}>
         <TextInput 
