@@ -1,12 +1,24 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Alert, TextInput, ScrollView, Animated, Platform } from 'react-native';
+import { 
+    View, 
+    Text, 
+    Modal, 
+    TouchableOpacity, 
+    StyleSheet, 
+    Image, 
+    ActivityIndicator, 
+    Alert, 
+    TextInput, 
+    ScrollView, 
+    Animated, 
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, Image as ImageIcon, X, Check, Upload, Loader2, Calendar, DollarSign, Tag, Store } from 'lucide-react-native';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, GRADIENTS } from '../constants/Theme';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Camera, Image as ImageIcon, X, Check, Calendar, DollarSign, Tag, Store, Scan } from 'lucide-react-native';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, GRADIENTS, TYPOGRAPHY } from '../constants/Theme';
 import { useExpenseStore } from '../stores/useExpenseStore';
 import { uploadToSupabase } from '../lib/supabase';
-import { LinearGradient } from 'expo-linear-gradient';
 
 interface ScanReceiptModalProps {
     visible: boolean;
@@ -20,6 +32,7 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
     const { scanReceipt, addTransaction, loading } = useExpenseStore();
 
     const pulseAnim = useRef(new Animated.Value(0.6)).current;
+    const glowAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (status === 'scanning' || status === 'uploading') {
@@ -29,8 +42,16 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
                     Animated.timing(pulseAnim, { toValue: 0.6, duration: 1000, useNativeDriver: true }),
                 ])
             ).start();
+            
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(glowAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+                    Animated.timing(glowAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
+                ])
+            ).start();
         } else {
             pulseAnim.setValue(1);
+            glowAnim.setValue(0);
         }
     }, [status]);
 
@@ -106,21 +127,48 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
         if (status === 'idle') {
             return (
                 <View style={styles.actionContainer}>
+                    <View style={styles.iconContainer}>
+                        <LinearGradient
+                            colors={GRADIENTS.primary as [string, string]}
+                            style={styles.iconGradient}
+                        >
+                            <Scan color={COLORS.white} size={32} />
+                        </LinearGradient>
+                    </View>
                     <Text style={styles.title}>Scan Receipt</Text>
-                    <Text style={styles.subtitle}>Take a photo or upload to automatically extracting details.</Text>
+                    <Text style={styles.subtitle}>
+                        Take a photo or upload to automatically extract details
+                    </Text>
 
                     <View style={styles.buttonRow}>
-                        <TouchableOpacity style={styles.actionButton} onPress={() => pickImage(true)}>
-                            <LinearGradient colors={GRADIENTS.primary as [string, string]} style={styles.gradientButton}>
-                                <Camera color="white" size={32} />
+                        <TouchableOpacity 
+                            style={styles.actionButton} 
+                            onPress={() => pickImage(true)}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient 
+                                colors={GRADIENTS.primary as [string, string]} 
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.gradientButton}
+                            >
+                                <View style={styles.buttonIconBg}>
+                                    <Camera color={COLORS.white} size={28} />
+                                </View>
                                 <Text style={styles.buttonText}>Camera</Text>
                             </LinearGradient>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.actionButton} onPress={() => pickImage(false)}>
+                        <TouchableOpacity 
+                            style={styles.actionButton} 
+                            onPress={() => pickImage(false)}
+                            activeOpacity={0.8}
+                        >
                             <View style={styles.secondaryButton}>
-                                <ImageIcon color={COLORS.primary} size={32} />
-                                <Text style={[styles.buttonText, { color: COLORS.primary }]}>Gallery</Text>
+                                <View style={[styles.buttonIconBg, styles.secondaryIconBg]}>
+                                    <ImageIcon color={COLORS.primary} size={28} />
+                                </View>
+                                <Text style={[styles.buttonText, styles.secondaryButtonText]}>Gallery</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -131,13 +179,28 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
         if (status === 'uploading' || status === 'scanning') {
             return (
                 <View style={styles.loadingContainer}>
-                    <Animated.View style={{ opacity: pulseAnim }}>
-                        <Image source={{ uri: image! }} style={styles.previewImageSmall} />
-                    </Animated.View>
-                    <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
-                    <Text style={styles.loadingText}>
-                        {status === 'uploading' ? 'Uploading...' : 'AI is reading receipt...'}
-                    </Text>
+                    <View style={styles.scanningWrapper}>
+                        <Animated.View style={[styles.scanGlow, { opacity: glowAnim }]} />
+                        <Animated.Image 
+                            source={{ uri: image! }} 
+                            style={[styles.previewImageSmall, { opacity: pulseAnim }]} 
+                        />
+                        <View style={styles.scanLine}>
+                            <LinearGradient
+                                colors={['transparent', COLORS.primary, 'transparent']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.scanLineGradient}
+                            />
+                        </View>
+                    </View>
+                    <View style={styles.loadingInfo}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                        <Text style={styles.loadingText}>
+                            {status === 'uploading' ? 'Uploading image...' : 'AI is reading receipt...'}
+                        </Text>
+                        <Text style={styles.loadingSubtext}>This may take a few seconds</Text>
+                    </View>
                 </View>
             );
         }
@@ -151,71 +214,106 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
                         contentContainerStyle={{ paddingBottom: 20 }}
                         keyboardShouldPersistTaps="handled"
                     >
-                        <Text style={styles.title}>Confirm Entry</Text>
-                        <Image source={{ uri: image! }} style={styles.previewImageParams} />
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Merchant</Text>
-                            <View style={styles.inputWrapper}>
-                                <Store size={20} color={COLORS.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={scannedData.merchant}
-                                    onChangeText={(t) => setScannedData({ ...scannedData, merchant: t })}
-                                />
+                        <Text style={styles.reviewTitle}>Confirm Entry</Text>
+                        <Text style={styles.reviewSubtitle}>Review and edit the extracted data</Text>
+                        
+                        <View style={styles.previewWrapper}>
+                            <Image source={{ uri: image! }} style={styles.previewImageParams} />
+                            <View style={styles.previewOverlay}>
+                                <View style={styles.successBadge}>
+                                    <Check color={COLORS.white} size={16} />
+                                    <Text style={styles.successText}>Scanned</Text>
+                                </View>
                             </View>
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Amount</Text>
-                            <View style={styles.inputWrapper}>
-                                <DollarSign size={20} color={COLORS.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={String(scannedData.amount)}
-                                    keyboardType="numeric"
-                                    onChangeText={(t) => setScannedData({ ...scannedData, amount: parseFloat(t) || 0 })}
-                                />
+                        <View style={styles.formCard}>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Merchant</Text>
+                                <View style={styles.inputWrapper}>
+                                    <View style={styles.inputIcon}>
+                                        <Store size={18} color={COLORS.primary} />
+                                    </View>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={scannedData.merchant}
+                                        placeholderTextColor={COLORS.textMuted}
+                                        onChangeText={(t) => setScannedData({ ...scannedData, merchant: t })}
+                                    />
+                                </View>
                             </View>
-                        </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Date</Text>
-                            <View style={styles.inputWrapper}>
-                                <Calendar size={20} color={COLORS.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={scannedData.date}
-                                    onChangeText={(t) => setScannedData({ ...scannedData, date: t })}
-                                />
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Amount</Text>
+                                <View style={styles.inputWrapper}>
+                                    <View style={styles.inputIcon}>
+                                        <DollarSign size={18} color={COLORS.primary} />
+                                    </View>
+                                    <Text style={styles.currencyPrefix}>₹</Text>
+                                    <TextInput
+                                        style={[styles.input, styles.amountInput]}
+                                        value={String(scannedData.amount)}
+                                        keyboardType="numeric"
+                                        placeholderTextColor={COLORS.textMuted}
+                                        onChangeText={(t) => setScannedData({ ...scannedData, amount: parseFloat(t) || 0 })}
+                                    />
+                                </View>
                             </View>
-                        </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Category</Text>
-                            <View style={styles.inputWrapper}>
-                                <Tag size={20} color={COLORS.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={scannedData.category}
-                                    onChangeText={(t) => setScannedData({ ...scannedData, category: t })}
-                                />
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Date</Text>
+                                <View style={styles.inputWrapper}>
+                                    <View style={styles.inputIcon}>
+                                        <Calendar size={18} color={COLORS.primary} />
+                                    </View>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={scannedData.date}
+                                        placeholderTextColor={COLORS.textMuted}
+                                        onChangeText={(t) => setScannedData({ ...scannedData, date: t })}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+                                <Text style={styles.label}>Category</Text>
+                                <View style={styles.inputWrapper}>
+                                    <View style={styles.inputIcon}>
+                                        <Tag size={18} color={COLORS.primary} />
+                                    </View>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={scannedData.category}
+                                        placeholderTextColor={COLORS.textMuted}
+                                        onChangeText={(t) => setScannedData({ ...scannedData, category: t })}
+                                    />
+                                </View>
                             </View>
                         </View>
                     </ScrollView>
 
-                    <View style={{ paddingTop: SPACING.m, paddingBottom: SPACING.l }}>
-                        <TouchableOpacity onPress={handleConfirm} disabled={loading} style={{ width: '100%' }}>
-                            <View style={styles.confirmButton}>
+                    <View style={styles.confirmWrapper}>
+                        <TouchableOpacity 
+                            onPress={handleConfirm} 
+                            disabled={loading} 
+                            style={styles.confirmOuter}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient
+                                colors={GRADIENTS.primary as [string, string]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.confirmButton}
+                            >
                                 {loading ? (
                                     <ActivityIndicator color="white" />
                                 ) : (
                                     <>
-                                        <Check color="white" size={24} style={{ marginRight: 8 }} />
+                                        <Check color="white" size={22} style={{ marginRight: 8 }} />
                                         <Text style={styles.confirmText}>Save Transaction</Text>
                                     </>
                                 )}
-                            </View>
+                            </LinearGradient>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -227,11 +325,33 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
     return (
         <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.overlay}>
-                <View style={styles.modalContent}>
-                    <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-                        <X color={COLORS.textSecondary} size={24} />
-                    </TouchableOpacity>
-                    {renderContent()}
+                <BlurView intensity={20} tint="dark" style={styles.blurOverlay} />
+                <View style={styles.modalWrapper}>
+                    <BlurView intensity={40} tint="dark" style={styles.modalBlur}>
+                        <LinearGradient
+                            colors={['rgba(26, 26, 36, 0.98)', 'rgba(10, 10, 15, 0.99)']}
+                            style={styles.modalContent}
+                        >
+                            {/* Ambient glow at top */}
+                            <LinearGradient
+                                colors={[
+                                    'rgba(255, 107, 74, 0.15)',
+                                    'rgba(255, 107, 74, 0.06)',
+                                    'rgba(255, 107, 74, 0.01)',
+                                    'rgba(26, 26, 36, 0)',
+                                ]}
+                                locations={[0, 0.4, 0.7, 1]}
+                                style={styles.ambientGlow}
+                            />
+                            
+                            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+                                <View style={styles.closeButtonInner}>
+                                    <X color={COLORS.textSecondary} size={20} />
+                                </View>
+                            </TouchableOpacity>
+                            {renderContent()}
+                        </LinearGradient>
+                    </BlurView>
                 </View>
             </View>
         </Modal>
@@ -241,104 +361,244 @@ export default function ScanReceiptModal({ visible, onClose }: ScanReceiptModalP
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
+    blurOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    },
+    modalWrapper: {
+        borderTopLeftRadius: BORDER_RADIUS.xl,
+        borderTopRightRadius: BORDER_RADIUS.xl,
+        overflow: 'hidden',
+        minHeight: '65%',
+        maxHeight: '92%',
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+        borderBottomWidth: 0,
+    },
+    modalBlur: {
+        flex: 1,
+    },
     modalContent: {
-        backgroundColor: COLORS.card,
-        borderTopLeftRadius: BORDER_RADIUS.l,
-        borderTopRightRadius: BORDER_RADIUS.l,
-        minHeight: '60%',
-        maxHeight: '90%',
+        flex: 1,
         padding: SPACING.l,
+    },
+    ambientGlow: {
+        // Seamless gradient transition
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 150,
+        borderTopLeftRadius: BORDER_RADIUS.xl,
+        borderTopRightRadius: BORDER_RADIUS.xl,
     },
     closeButton: {
         alignSelf: 'flex-end',
         marginBottom: SPACING.s,
-        padding: SPACING.s,
+        zIndex: 10,
+    },
+    closeButtonInner: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: COLORS.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    
+    // Action Container (Idle state)
+    actionContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 1,
+        paddingBottom: SPACING.xl,
+    },
+    iconContainer: {
+        marginBottom: SPACING.l,
+    },
+    iconGradient: {
+        width: 72,
+        height: 72,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.glow,
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        ...TYPOGRAPHY.h1,
         color: COLORS.text,
         marginBottom: SPACING.s,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
-        color: COLORS.textSecondary,
+        ...TYPOGRAPHY.body,
+        color: COLORS.textMuted,
         textAlign: 'center',
         marginBottom: SPACING.xl,
-    },
-    actionContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
+        paddingHorizontal: SPACING.l,
     },
     buttonRow: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         width: '100%',
+        gap: SPACING.m,
     },
     actionButton: {
         flex: 1,
-        marginHorizontal: SPACING.s,
-        height: 120,
+        height: 140,
+        borderRadius: BORDER_RADIUS.l,
+        overflow: 'hidden',
     },
     gradientButton: {
         flex: 1,
-        borderRadius: BORDER_RADIUS.m,
         justifyContent: 'center',
         alignItems: 'center',
-        ...SHADOWS.medium,
+        ...SHADOWS.float,
     },
     secondaryButton: {
         flex: 1,
-        backgroundColor: COLORS.background,
-        borderRadius: BORDER_RADIUS.m,
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.l,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: COLORS.primary,
+        borderColor: COLORS.glassBorder,
+    },
+    buttonIconBg: {
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: SPACING.s,
+    },
+    secondaryIconBg: {
+        backgroundColor: 'rgba(255, 107, 74, 0.15)',
     },
     buttonText: {
-        marginTop: SPACING.s,
-        fontWeight: '600',
-        fontSize: 16,
-        color: 'white',
+        ...TYPOGRAPHY.bodyBold,
+        color: COLORS.white,
     },
+    secondaryButtonText: {
+        color: COLORS.text,
+    },
+    
+    // Loading State
     loadingContainer: {
         alignItems: 'center',
         padding: SPACING.xl,
+        flex: 1,
+        justifyContent: 'center',
+    },
+    scanningWrapper: {
+        position: 'relative',
+        marginBottom: SPACING.xl,
+    },
+    scanGlow: {
+        position: 'absolute',
+        top: -20,
+        left: -20,
+        right: -20,
+        bottom: -20,
+        borderRadius: BORDER_RADIUS.l + 20,
+        backgroundColor: COLORS.primary,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 30,
     },
     previewImageSmall: {
-        width: 200,
-        height: 300,
-        borderRadius: BORDER_RADIUS.m,
-        resizeMode: 'contain',
-        backgroundColor: '#eee',
+        width: 180,
+        height: 260,
+        borderRadius: BORDER_RADIUS.l,
+        backgroundColor: COLORS.surface,
+    },
+    scanLine: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 3,
+        top: '50%',
+    },
+    scanLineGradient: {
+        flex: 1,
+        borderRadius: 2,
+    },
+    loadingInfo: {
+        alignItems: 'center',
     },
     loadingText: {
+        ...TYPOGRAPHY.bodyBold,
+        color: COLORS.text,
         marginTop: SPACING.m,
-        fontSize: 18,
-        color: COLORS.primary,
-        fontWeight: '600',
     },
+    loadingSubtext: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.textMuted,
+        marginTop: SPACING.xs,
+    },
+    
+    // Review State
     formContainer: {
         flex: 1,
     },
+    reviewTitle: {
+        ...TYPOGRAPHY.h2,
+        color: COLORS.text,
+        textAlign: 'center',
+        marginBottom: SPACING.xs,
+    },
+    reviewSubtitle: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.textMuted,
+        textAlign: 'center',
+        marginBottom: SPACING.l,
+    },
+    previewWrapper: {
+        position: 'relative',
+        marginBottom: SPACING.l,
+        borderRadius: BORDER_RADIUS.l,
+        overflow: 'hidden',
+    },
     previewImageParams: {
         width: '100%',
-        height: 150,
-        borderRadius: BORDER_RADIUS.m,
-        resizeMode: 'cover',
-        marginBottom: SPACING.m,
+        height: 140,
+        backgroundColor: COLORS.surface,
+    },
+    previewOverlay: {
+        position: 'absolute',
+        top: SPACING.s,
+        right: SPACING.s,
+    },
+    successBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.success,
+        paddingHorizontal: SPACING.s,
+        paddingVertical: SPACING.xs,
+        borderRadius: BORDER_RADIUS.round,
+        gap: 4,
+    },
+    successText: {
+        ...TYPOGRAPHY.small,
+        color: COLORS.white,
+        fontWeight: '600',
+    },
+    formCard: {
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.l,
+        padding: SPACING.l,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
     },
     inputGroup: {
-        marginBottom: SPACING.m,
+        marginBottom: SPACING.l,
     },
     label: {
-        fontSize: 14,
+        ...TYPOGRAPHY.caption,
         color: COLORS.textSecondary,
         marginBottom: SPACING.s,
     },
@@ -346,31 +606,55 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.background,
-        borderRadius: BORDER_RADIUS.s,
-        paddingHorizontal: SPACING.m,
-        height: 50,
+        borderRadius: BORDER_RADIUS.m,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+        paddingHorizontal: SPACING.s,
+        height: 52,
+    },
+    inputIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 107, 74, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: SPACING.s,
+    },
+    currencyPrefix: {
+        ...TYPOGRAPHY.h3,
+        color: COLORS.textSecondary,
+        marginRight: 4,
     },
     input: {
         flex: 1,
-        marginLeft: SPACING.s,
-        fontSize: 16,
+        ...TYPOGRAPHY.body,
         color: COLORS.text,
         height: '100%',
-        textAlignVertical: 'center',
-        paddingVertical: 0,
+    },
+    amountInput: {
+        ...TYPOGRAPHY.h3,
+        fontWeight: '600',
+    },
+    
+    // Confirm Button
+    confirmWrapper: {
+        paddingTop: SPACING.m,
+        paddingBottom: SPACING.l,
+    },
+    confirmOuter: {
+        borderRadius: BORDER_RADIUS.round,
+        overflow: 'hidden',
+        ...SHADOWS.float,
     },
     confirmButton: {
         flexDirection: 'row',
         height: 56,
-        backgroundColor: COLORS.primary,
-        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        ...SHADOWS.medium,
     },
     confirmText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
+        ...TYPOGRAPHY.button,
+        color: COLORS.white,
     },
 });
