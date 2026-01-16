@@ -8,25 +8,9 @@ import DashboardScreen from '../screens/DashboardScreen';
 import LedgerScreen from '../screens/LedgerScreen';
 import AiCoachScreen from '../screens/AiCoachScreen';
 import PlanScreen from '../screens/PlanScreen';
-import { COLORS, GRADIENTS, SHADOWS } from '../constants/Theme';
+import { COLORS } from '../constants/Theme';
 
 const Tab = createBottomTabNavigator();
-
-// Custom tab bar icon with glow effect when active
-const TabIcon = ({ Icon, focused, color }: { Icon: any; focused: boolean; color: string }) => {
-  return (
-    <View style={styles.iconContainer}>
-      {focused && (
-        <View style={styles.glowDot} />
-      )}
-      <Icon 
-        color={color} 
-        size={24} 
-        strokeWidth={focused ? 2.5 : 2}
-      />
-    </View>
-  );
-};
 
 export default function TabNavigator() {
   return (
@@ -42,7 +26,6 @@ export default function TabNavigator() {
                 style={StyleSheet.absoluteFill}
               />
             </BlurView>
-            {/* Top border glow */}
             <LinearGradient
               colors={['rgba(255, 107, 74, 0.3)', 'transparent']}
               style={styles.topGlow}
@@ -59,36 +42,28 @@ export default function TabNavigator() {
         name="Dashboard" 
         component={DashboardScreen}
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon Icon={Home} color={color} focused={focused} />
-          ),
+          tabBarIcon: ({ color }) => <Home color={color} size={24} />,
         }}
       />
       <Tab.Screen 
         name="Ledger" 
         component={LedgerScreen}
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon Icon={Receipt} color={color} focused={focused} />
-          ),
+          tabBarIcon: ({ color }) => <Receipt color={color} size={24} />,
         }}
       />
       <Tab.Screen 
         name="AI Coach" 
         component={AiCoachScreen}
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon Icon={Bot} color={color} focused={focused} />
-          ),
+          tabBarIcon: ({ color }) => <Bot color={color} size={24} />,
         }}
       />
       <Tab.Screen 
         name="Plan" 
         component={PlanScreen}
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon Icon={Calendar} color={color} focused={focused} />
-          ),
+          tabBarIcon: ({ color }) => <Calendar color={color} size={24} />,
         }}
       />
     </Tab.Navigator>
@@ -116,24 +91,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     marginTop: 4,
-    letterSpacing: 0.3,
-  },
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 48,
-    height: 32,
-  },
-  glowDot: {
-    position: 'absolute',
-    top: -4,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
   },
 });

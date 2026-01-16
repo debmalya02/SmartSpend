@@ -1,17 +1,47 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank } from 'lucide-react-native';
-import { useExpenseStore } from '../stores/useExpenseStore';
-import { Card } from '../components/Card';
-import { COLORS, GRADIENTS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/Theme';
+import React, { useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Dimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Sparkles,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react-native";
+import { useExpenseStore } from "../stores/useExpenseStore";
+import {
+  COLORS,
+  GRADIENTS,
+  SPACING,
+  BORDER_RADIUS,
+  TYPOGRAPHY,
+} from "../constants/Theme";
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
+
+// Get greeting based on time
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+};
 
 export default function DashboardScreen() {
   const { dashboardStats, fetchDashboardStats } = useExpenseStore();
   const [refreshing, setRefreshing] = useState(false);
+
+  const userName = "User";
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -30,140 +60,215 @@ export default function DashboardScreen() {
     savingsRate: 0,
   };
 
+  const greeting = getGreeting();
+  const netBalance = stats.income - stats.expense;
+
   return (
     <View style={styles.container}>
-      {/* Ambient Background Glow - Seamless multi-stop gradient */}
+      {/* Smooth ambient glow - diagonal gradient from top-right */}
       <LinearGradient
         colors={[
-          'rgba(255, 107, 74, 0.15)',
-          'rgba(255, 107, 74, 0.08)',
-          'rgba(255, 107, 74, 0.03)',
-          'rgba(255, 107, 74, 0.01)',
-          'rgba(10, 10, 15, 0)',
+          "rgba(255, 107, 74, 0.18)",
+          "rgba(255, 115, 85, 0.1)",
+          "rgba(255, 130, 100, 0.04)",
+          "transparent",
         ]}
-        locations={[0, 0.25, 0.5, 0.75, 1]}
+        locations={[0, 0.15, 0.35, 0.6]}
         style={styles.ambientGlow}
+        start={{ x: 1, y: 0 }}
+        end={{ x: 0, y: 0.5 }}
       />
-      
-      <SafeAreaView style={styles.safeArea}>
+
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
               tintColor={COLORS.primary}
               colors={[COLORS.primary]}
             />
           }
         >
-          {/* Header */}
+          {/* Header Section */}
           <View style={styles.header}>
-            <Text style={styles.greeting}>Good Evening</Text>
-            <Text style={styles.title}>Dashboard</Text>
-          </View>
-
-          {/* Primary Savings Card with Glow */}
-          <Card variant="primary" glow>
-            <View style={styles.savingsHeader}>
-              <View style={styles.iconBadge}>
-                <PiggyBank color={COLORS.white} size={24} />
-              </View>
-              <Text style={styles.savingsLabel}>Monthly Savings</Text>
+            <View>
+              <Text style={styles.greeting}>{greeting},</Text>
+              <Text style={styles.userName}>{userName}</Text>
             </View>
-            
-            <Text style={styles.savingsAmount}>₹{stats.savings.toLocaleString()}</Text>
-            
-            <View style={styles.savingsRow}>
-              <View style={styles.percentageBadge}>
-                <TrendingUp color={COLORS.white} size={14} />
-                <Text style={styles.percentageText}>{stats.savingsRate}%</Text>
-              </View>
-              <Text style={styles.savingsSubtext}>saved this month</Text>
-            </View>
-            
-            {/* Premium Progress Bar */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBg}>
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.7)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.progressFill, { width: `${Math.min(stats.savingsRate, 100)}%` }]}
-                />
-              </View>
-              <View style={styles.progressMarkers}>
-                <Text style={styles.progressMarker}>0%</Text>
-                <Text style={styles.progressMarker}>50%</Text>
-                <Text style={styles.progressMarker}>100%</Text>
-              </View>
-            </View>
-          </Card>
-
-          {/* Stats Grid */}
-          <View style={styles.statsGrid}>
-            {/* Income Card */}
-            <View style={styles.statCardWrapper}>
-              <Card style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: 'rgba(0, 214, 143, 0.15)' }]}>
-                  <TrendingUp color={COLORS.success} size={20} />
-                </View>
-                <Text style={styles.statLabel}>Income</Text>
-                <Text style={[styles.statValue, { color: COLORS.success }]}>
-                  ₹{stats.income.toLocaleString()}
-                </Text>
-                <View style={styles.statTrend}>
-                  <View style={[styles.trendDot, { backgroundColor: COLORS.success }]} />
-                  <Text style={styles.trendText}>This month</Text>
-                </View>
-              </Card>
-            </View>
-
-            {/* Expenses Card */}
-            <View style={styles.statCardWrapper}>
-              <Card style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: 'rgba(255, 71, 87, 0.15)' }]}>
-                  <TrendingDown color={COLORS.danger} size={20} />
-                </View>
-                <Text style={styles.statLabel}>Expenses</Text>
-                <Text style={[styles.statValue, { color: COLORS.danger }]}>
-                  ₹{stats.expense.toLocaleString()}
-                </Text>
-                <View style={styles.statTrend}>
-                  <View style={[styles.trendDot, { backgroundColor: COLORS.danger }]} />
-                  <Text style={styles.trendText}>This month</Text>
-                </View>
-              </Card>
+            <View style={styles.sparkleContainer}>
+              <Sparkles color={COLORS.primary} size={24} />
             </View>
           </View>
 
-          {/* Balance Overview Card */}
-          <Card variant="glass">
-            <View style={styles.balanceHeader}>
-              <View style={[styles.statIcon, { backgroundColor: 'rgba(255, 107, 74, 0.15)' }]}>
-                <Wallet color={COLORS.primary} size={20} />
+          {/* Main Balance Card */}
+          <View style={styles.balanceCard}>
+            <LinearGradient
+              colors={["rgba(255, 107, 74, 0.08)", "rgba(255, 107, 74, 0.02)"]}
+              style={styles.balanceGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.balanceHeader}>
+                <Text style={styles.balanceLabel}>Total Savings</Text>
+                <View style={styles.savingsRateBadge}>
+                  <TrendingUp color={COLORS.success} size={14} />
+                  <Text style={styles.savingsRateText}>
+                    {stats.savingsRate}%
+                  </Text>
+                </View>
               </View>
-              <View style={styles.balanceInfo}>
-                <Text style={styles.balanceLabel}>Net Balance</Text>
-                <Text style={styles.balanceValue}>
-                  ₹{(stats.income - stats.expense).toLocaleString()}
+
+              <Text style={styles.balanceAmount}>
+                <Text style={styles.currencySymbol}>₹</Text>
+                {stats.savings.toLocaleString()}
+              </Text>
+
+              <Text style={styles.balanceSubtext}>this month</Text>
+
+              {/* Progress indicator */}
+              <View style={styles.progressWrapper}>
+                <View style={styles.progressTrack}>
+                  <LinearGradient
+                    colors={[COLORS.primary, COLORS.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.progressBar,
+                      { width: `${Math.min(stats.savingsRate, 100)}%` },
+                    ]}
+                  />
+                </View>
+                <View style={styles.progressLabels}>
+                  <Text style={styles.progressLabel}>0%</Text>
+                  <Text style={styles.progressLabel}>Target</Text>
+                </View>
+              </View>
+            </LinearGradient>
+
+            {/* Accent line */}
+            <LinearGradient
+              colors={[COLORS.primary, "transparent"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.accentLine}
+            />
+          </View>
+
+          {/* Quick Stats Row */}
+          <View style={styles.quickStats}>
+            {/* Income */}
+            <View style={styles.quickStatCard}>
+              <BlurView intensity={20} tint="dark" style={styles.quickStatBlur}>
+                <View style={styles.quickStatContent}>
+                  <View style={styles.quickStatHeader}>
+                    <View style={[styles.quickStatIcon, styles.incomeIcon]}>
+                      <ArrowDownRight color={COLORS.success} size={16} />
+                    </View>
+                    <Text style={styles.quickStatLabel}>Income</Text>
+                  </View>
+                  <Text style={[styles.quickStatValue, styles.incomeValue]}>
+                    ₹{stats.income.toLocaleString()}
+                  </Text>
+                </View>
+              </BlurView>
+            </View>
+
+            {/* Expenses */}
+            <View style={styles.quickStatCard}>
+              <BlurView intensity={20} tint="dark" style={styles.quickStatBlur}>
+                <View style={styles.quickStatContent}>
+                  <View style={styles.quickStatHeader}>
+                    <View style={[styles.quickStatIcon, styles.expenseIcon]}>
+                      <ArrowUpRight color={COLORS.danger} size={16} />
+                    </View>
+                    <Text style={styles.quickStatLabel}>Expenses</Text>
+                  </View>
+                  <Text style={[styles.quickStatValue, styles.expenseValue]}>
+                    ₹{stats.expense.toLocaleString()}
+                  </Text>
+                </View>
+              </BlurView>
+            </View>
+          </View>
+
+          {/* Net Balance Card */}
+          <View style={styles.netBalanceCard}>
+            <BlurView intensity={25} tint="dark" style={styles.netBalanceBlur}>
+              <View style={styles.netBalanceContent}>
+                <View style={styles.netBalanceLeft}>
+                  <View style={styles.netBalanceIconContainer}>
+                    <Wallet color={COLORS.primary} size={22} />
+                  </View>
+                  <View>
+                    <Text style={styles.netBalanceLabel}>Net Balance</Text>
+                    <Text style={styles.netBalanceHint}>Income - Expenses</Text>
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    styles.netBalanceValue,
+                    netBalance >= 0
+                      ? styles.positiveBalance
+                      : styles.negativeBalance,
+                  ]}
+                >
+                  {netBalance >= 0 ? "+" : ""}₹
+                  {Math.abs(netBalance).toLocaleString()}
                 </Text>
               </View>
-            </View>
-            <View style={styles.balanceBar}>
-              <LinearGradient
-                colors={GRADIENTS.primary as [string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.balanceBarFill, { 
-                  width: stats.income > 0 ? `${Math.min((stats.income - stats.expense) / stats.income * 100, 100)}%` : '0%'
-                }]}
-              />
-            </View>
-          </Card>
 
-          {/* Bottom Spacing for Tab Bar */}
+              {/* Mini bar */}
+              <View style={styles.miniBarContainer}>
+                <View style={styles.miniBarTrack}>
+                  <View
+                    style={[
+                      styles.miniBarIncome,
+                      {
+                        width:
+                          stats.income > 0
+                            ? `${
+                                (stats.income /
+                                  (stats.income + stats.expense)) *
+                                100
+                              }%`
+                            : "50%",
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.miniBarExpense,
+                      {
+                        width:
+                          stats.expense > 0
+                            ? `${
+                                (stats.expense /
+                                  (stats.income + stats.expense)) *
+                                100
+                              }%`
+                            : "50%",
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.miniBarLabels}>
+                  <View style={styles.miniBarLabelItem}>
+                    <View style={[styles.miniBarDot, styles.incomeDot]} />
+                    <Text style={styles.miniBarLabelText}>Income</Text>
+                  </View>
+                  <View style={styles.miniBarLabelItem}>
+                    <View style={[styles.miniBarDot, styles.expenseDot]} />
+                    <Text style={styles.miniBarLabelText}>Expenses</Text>
+                  </View>
+                </View>
+              </View>
+            </BlurView>
+          </View>
+
+          {/* Bottom spacing */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </SafeAreaView>
@@ -177,182 +282,285 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   ambientGlow: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 500,
+    height: height,
   },
   safeArea: {
     flex: 1,
   },
-  scroll: {
-    padding: SPACING.l,
+  scrollContent: {
+    paddingHorizontal: SPACING.l,
+    paddingTop: SPACING.m,
   },
+
+  // Header
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: SPACING.xl,
   },
   greeting: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 16,
     color: COLORS.textMuted,
-    marginBottom: SPACING.xs,
+    fontWeight: "500",
+    marginBottom: 4,
   },
-  title: {
-    ...TYPOGRAPHY.hero,
+  userName: {
+    fontSize: 32,
+    fontWeight: "700",
     color: COLORS.text,
-  },
-  
-  // Savings Card
-  savingsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.m,
-  },
-  iconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.s,
-  },
-  savingsLabel: {
-    ...TYPOGRAPHY.bodyBold,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  savingsAmount: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: -2,
-    marginBottom: SPACING.s,
-  },
-  savingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.l,
-  },
-  percentageBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: SPACING.s,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.round,
-    marginRight: SPACING.s,
-  },
-  percentageText: {
-    ...TYPOGRAPHY.bodyBold,
-    color: COLORS.white,
-    marginLeft: 4,
-  },
-  savingsSubtext: {
-    ...TYPOGRAPHY.caption,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  progressContainer: {
-    marginTop: SPACING.s,
-  },
-  progressBg: {
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressMarkers: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: SPACING.xs,
-  },
-  progressMarker: {
-    ...TYPOGRAPHY.small,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  
-  // Stats Grid
-  statsGrid: {
-    flexDirection: 'row',
-    gap: SPACING.m,
-    marginBottom: SPACING.s,
-  },
-  statCardWrapper: {
-    flex: 1,
-  },
-  statCard: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.s,
-  },
-  statLabel: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
     letterSpacing: -0.5,
-    marginBottom: SPACING.s,
   },
-  statTrend: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sparkleContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 107, 74, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 107, 74, 0.2)",
   },
-  trendDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: SPACING.xs,
-  },
-  trendText: {
-    ...TYPOGRAPHY.small,
-    color: COLORS.textMuted,
-  },
-  
+
   // Balance Card
-  balanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.m,
+  balanceCard: {
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: "hidden",
+    marginBottom: SPACING.l,
+    borderWidth: 1,
+    borderColor: "rgba(255, 107, 74, 0.15)",
   },
-  balanceInfo: {
-    marginLeft: SPACING.s,
-    flex: 1,
+  balanceGradient: {
+    padding: SPACING.l,
+  },
+  balanceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SPACING.m,
   },
   balanceLabel: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  savingsRateBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 214, 143, 0.1)",
+    paddingHorizontal: SPACING.s,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.round,
+    gap: 4,
+  },
+  savingsRateText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.success,
+  },
+  balanceAmount: {
+    fontSize: 52,
+    fontWeight: "800",
+    color: COLORS.text,
+    letterSpacing: -2,
+    marginBottom: 4,
+  },
+  currencySymbol: {
+    fontSize: 32,
+    fontWeight: "600",
     color: COLORS.textSecondary,
   },
-  balanceValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: COLORS.text,
+  balanceSubtext: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.l,
+  },
+  progressWrapper: {
+    marginTop: SPACING.s,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressBar: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  progressLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: SPACING.xs,
+  },
+  progressLabel: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontWeight: "500",
+  },
+  accentLine: {
+    height: 2,
+  },
+
+  // Quick Stats
+  quickStats: {
+    flexDirection: "row",
+    gap: SPACING.m,
+    marginBottom: SPACING.l,
+  },
+  quickStatCard: {
+    flex: 1,
+    borderRadius: BORDER_RADIUS.l,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+  },
+  quickStatBlur: {
+    overflow: "hidden",
+  },
+  quickStatContent: {
+    padding: SPACING.m,
+  },
+  quickStatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.s,
+    marginBottom: SPACING.s,
+  },
+  quickStatIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  incomeIcon: {
+    backgroundColor: "rgba(0, 214, 143, 0.12)",
+  },
+  expenseIcon: {
+    backgroundColor: "rgba(255, 71, 87, 0.12)",
+  },
+  quickStatLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
+  },
+  quickStatValue: {
+    fontSize: 22,
+    fontWeight: "700",
     letterSpacing: -0.5,
   },
-  balanceBar: {
-    height: 6,
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 3,
-    overflow: 'hidden',
+  incomeValue: {
+    color: COLORS.success,
   },
-  balanceBarFill: {
-    height: '100%',
-    borderRadius: 3,
+  expenseValue: {
+    color: COLORS.text,
   },
-  
+
+  // Net Balance Card
+  netBalanceCard: {
+    borderRadius: BORDER_RADIUS.l,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+  },
+  netBalanceBlur: {
+    overflow: "hidden",
+  },
+  netBalanceContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: SPACING.m,
+    paddingBottom: SPACING.s,
+  },
+  netBalanceLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.m,
+  },
+  netBalanceIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 107, 74, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  netBalanceLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  netBalanceHint: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  netBalanceValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+  },
+  positiveBalance: {
+    color: COLORS.success,
+  },
+  negativeBalance: {
+    color: COLORS.danger,
+  },
+
+  // Mini Bar
+  miniBarContainer: {
+    paddingHorizontal: SPACING.m,
+    paddingBottom: SPACING.m,
+  },
+  miniBarTrack: {
+    flexDirection: "row",
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+    marginBottom: SPACING.s,
+  },
+  miniBarIncome: {
+    backgroundColor: COLORS.success,
+  },
+  miniBarExpense: {
+    backgroundColor: COLORS.danger,
+  },
+  miniBarLabels: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: SPACING.l,
+  },
+  miniBarLabelItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  miniBarDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  incomeDot: {
+    backgroundColor: COLORS.success,
+  },
+  expenseDot: {
+    backgroundColor: COLORS.danger,
+  },
+  miniBarLabelText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: "500",
+  },
+
   bottomSpacer: {
-    height: 100,
+    height: 120,
   },
 });

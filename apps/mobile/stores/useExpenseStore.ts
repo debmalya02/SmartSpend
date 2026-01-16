@@ -42,8 +42,9 @@ interface RecurringPlan {
 }
 
 // Replace with your actual local IP if testing on real device, or localhost for simulator
-const API_URL = 'http://192.168.0.177:3000'; // Local Machine IP
+// const API_URL = 'http://192.168.0.177:3000'; // Local Machine IP
 // const API_URL = 'http://10.0.2.2:3000'; // For Android Emulator
+const API_URL = 'http://192.168.0.177:3000'; // Local Machine IP
 // const API_URL = 'http://localhost:3000'; // For iOS Simulator
 // const API_URL = 'https://smartspend-h9vm.onrender.com'; // Production
 

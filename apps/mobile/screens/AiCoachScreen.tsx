@@ -1,38 +1,45 @@
-import React, { useState, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  ScrollView, 
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Animated,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { Bot, Send, Sparkles, User } from 'lucide-react-native';
-import { useExpenseStore } from '../stores/useExpenseStore';
-import { COLORS, GRADIENTS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/Theme';
+  Dimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Bot, Send, Sparkles, User } from "lucide-react-native";
+import { useExpenseStore } from "../stores/useExpenseStore";
+import {
+  COLORS,
+  SPACING,
+} from "../constants/Theme";
+
+const { height } = Dimensions.get("window");
 
 export default function AiCoachScreen() {
   const { askAffordability } = useExpenseStore();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [messages, setMessages] = useState<{role: 'user' | 'system', text: string}[]>([
-    { role: 'system', text: 'Hey there! I\'m your AI Financial Coach. Ask me anything about your spending habits, or check if you can afford that new gadget! 💰' }
+  const [messages, setMessages] = useState<
+    { role: "user" | "system"; text: string }[]
+  >([
+    {
+      role: "system",
+      text: "Hey there! I'm your AI Financial Coach. Ask me anything about your spending habits, or check if you can afford that new gadget!",
+    },
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
-    
+
     const userText = input;
-    setMessages(prev => [...prev, { role: 'user', text: userText }]);
-    setInput('');
+    setMessages((prev) => [...prev, { role: "user", text: userText }]);
+    setInput("");
     setLoading(true);
 
     setTimeout(() => {
@@ -40,11 +47,14 @@ export default function AiCoachScreen() {
     }, 100);
 
     const response = await askAffordability(userText);
-    
-    setMessages(prev => [...prev, { 
-      role: 'system', 
-      text: `${response.verdict}\n\n${response.advice}` 
-    }]);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "system",
+        text: `${response.verdict}\n\n${response.advice}`,
+      },
+    ]);
     setLoading(false);
 
     setTimeout(() => {
@@ -52,165 +62,151 @@ export default function AiCoachScreen() {
     }, 100);
   };
 
-  const renderMessage = (message: {role: 'user' | 'system', text: string}, index: number) => {
-    const isUser = message.role === 'user';
-    
+  const renderMessage = (
+    message: { role: "user" | "system"; text: string },
+    index: number
+  ) => {
+    const isUser = message.role === "user";
+
     return (
-      <Animated.View 
-        key={index} 
-        style={[styles.messageContainer, isUser ? styles.userContainer : styles.systemContainer]}
+      <View
+        key={index}
+        style={[
+          styles.messageContainer,
+          isUser ? styles.userContainer : styles.systemContainer,
+        ]}
       >
         {!isUser && (
           <View style={styles.avatarContainer}>
             <LinearGradient
-              colors={GRADIENTS.primary as [string, string]}
+              colors={[COLORS.primary, COLORS.secondary]}
               style={styles.avatar}
             >
-              <Bot color={COLORS.white} size={18} />
+              <Bot color={COLORS.white} size={14} />
             </LinearGradient>
           </View>
         )}
-        
-        <View style={[styles.bubbleOuter, isUser && styles.userBubbleOuter]}>
+
+        <View style={[styles.bubble, isUser && styles.userBubble]}>
           {isUser ? (
             <LinearGradient
-              colors={GRADIENTS.primary as [string, string]}
+              colors={[COLORS.primary, COLORS.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.userBubble}
+              style={styles.userBubbleGradient}
             >
               <Text style={styles.userText}>{message.text}</Text>
             </LinearGradient>
           ) : (
-            <BlurView intensity={30} tint="dark" style={styles.bubbleBlur}>
-              <LinearGradient
-                colors={GRADIENTS.glass as [string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.systemBubble}
-              >
-                <Text style={styles.systemText}>{message.text}</Text>
-              </LinearGradient>
-            </BlurView>
+            <View style={styles.systemBubbleContent}>
+              <Text style={styles.systemText}>{message.text}</Text>
+            </View>
           )}
         </View>
 
         {isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.userAvatar}>
-              <User color={COLORS.textSecondary} size={18} />
+              <User color={COLORS.textSecondary} size={14} />
             </View>
           </View>
         )}
-      </Animated.View>
+      </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      {/* Ambient Background - Seamless multi-stop gradient */}
+      {/* Smooth ambient glow */}
       <LinearGradient
         colors={[
-          'rgba(255, 107, 74, 0.12)',
-          'rgba(255, 107, 74, 0.06)',
-          'rgba(255, 107, 74, 0.02)',
-          'rgba(255, 107, 74, 0.005)',
-          'rgba(10, 10, 15, 0)',
+          "rgba(255, 107, 74, 0.18)",
+          "rgba(255, 115, 85, 0.1)",
+          "rgba(255, 130, 100, 0.04)",
+          "transparent",
         ]}
-        locations={[0, 0.3, 0.55, 0.8, 1]}
+        locations={[0, 0.15, 0.35, 0.6]}
         style={styles.ambientGlow}
+        start={{ x: 1, y: 0 }}
+        end={{ x: 0, y: 0.5 }}
       />
-      
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <LinearGradient
-              colors={GRADIENTS.primary as [string, string]}
-              style={styles.headerIcon}
-            >
-              <Sparkles color={COLORS.white} size={20} />
-            </LinearGradient>
-            <View>
-              <Text style={styles.title}>AI Coach</Text>
-              <Text style={styles.subtitle}>Your personal finance advisor</Text>
-            </View>
+          <View>
+            <Text style={styles.title}>AI Coach</Text>
+            <Text style={styles.subtitle}>Your finance advisor</Text>
+          </View>
+          <View style={styles.headerIcon}>
+            <Sparkles color={COLORS.primary} size={22} />
           </View>
         </View>
 
         {/* Messages */}
-        <ScrollView 
+        <ScrollView
           ref={scrollViewRef}
           style={styles.chatContainer}
           contentContainerStyle={styles.chatContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           {messages.map(renderMessage)}
-          
+
           {loading && (
             <View style={[styles.messageContainer, styles.systemContainer]}>
               <View style={styles.avatarContainer}>
                 <LinearGradient
-                  colors={GRADIENTS.primary as [string, string]}
+                  colors={[COLORS.primary, COLORS.secondary]}
                   style={styles.avatar}
                 >
-                  <Bot color={COLORS.white} size={18} />
+                  <Bot color={COLORS.white} size={14} />
                 </LinearGradient>
               </View>
-              <View style={styles.bubbleOuter}>
-                <BlurView intensity={30} tint="dark" style={styles.bubbleBlur}>
-                  <LinearGradient
-                    colors={GRADIENTS.glass as [string, string]}
-                    style={[styles.systemBubble, styles.loadingBubble]}
-                  >
-                    <ActivityIndicator color={COLORS.primary} size="small" />
-                    <Text style={styles.loadingText}>Analyzing...</Text>
-                  </LinearGradient>
-                </BlurView>
+              <View style={styles.bubble}>
+                <View style={[styles.systemBubbleContent, styles.loadingBubble]}>
+                  <ActivityIndicator color={COLORS.primary} size="small" />
+                  <Text style={styles.loadingText}>Thinking...</Text>
+                </View>
               </View>
             </View>
           )}
         </ScrollView>
 
-        {/* Input Area */}
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={90}
-        >
-          <View style={styles.inputAreaOuter}>
-            <BlurView intensity={60} tint="dark" style={styles.inputBlur}>
-              <LinearGradient
-                colors={['rgba(26, 26, 36, 0.95)', 'rgba(18, 18, 26, 0.98)']}
-                style={styles.inputArea}
-              >
-                <View style={styles.inputWrapper}>
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="Can I afford the new iPhone?" 
-                    placeholderTextColor={COLORS.textMuted}
-                    value={input}
-                    onChangeText={setInput}
-                    onSubmitEditing={sendMessage}
-                    multiline
-                    maxLength={500}
-                  />
-                  <TouchableOpacity 
-                    onPress={sendMessage} 
-                    disabled={loading || !input.trim()}
-                    style={[
-                      styles.sendButton,
-                      input.trim() && styles.sendButtonActive
-                    ]}
-                    activeOpacity={0.7}
-                  >
-                    <Send color={input.trim() ? COLORS.white : COLORS.textMuted} size={20} />
-                  </TouchableOpacity>
+        {/* Input Area - Clean minimal design */}
+        <View style={styles.inputWrapper}>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Ask anything..."
+              placeholderTextColor={COLORS.textMuted}
+              value={input}
+              onChangeText={setInput}
+              onSubmitEditing={sendMessage}
+              multiline
+              maxLength={500}
+            />
+            <TouchableOpacity
+              onPress={sendMessage}
+              disabled={loading || !input.trim()}
+              activeOpacity={0.7}
+            >
+              {input.trim() ? (
+                <LinearGradient
+                  colors={[COLORS.primary, COLORS.secondary]}
+                  style={styles.sendButton}
+                >
+                  <Send color={COLORS.white} size={16} />
+                </LinearGradient>
+              ) : (
+                <View style={styles.sendButtonInactive}>
+                  <Send color={COLORS.textMuted} size={16} />
                 </View>
-              </LinearGradient>
-            </BlurView>
+              )}
+            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -222,168 +218,162 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   ambientGlow: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 500,
+    height: height,
   },
   safeArea: {
     flex: 1,
   },
-  
+
   // Header
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     paddingHorizontal: SPACING.l,
     paddingTop: SPACING.m,
-    paddingBottom: SPACING.l,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.glassBorder,
+    paddingBottom: SPACING.m,
   },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  title: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: COLORS.text,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 4,
   },
   headerIcon: {
     width: 48,
     height: 48,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.m,
-    ...SHADOWS.glow,
+    backgroundColor: "rgba(255, 107, 74, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 107, 74, 0.2)",
   },
-  title: {
-    ...TYPOGRAPHY.h1,
-    color: COLORS.text,
-  },
-  subtitle: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  
+
   // Chat
   chatContainer: {
     flex: 1,
   },
   chatContent: {
-    padding: SPACING.l,
-    paddingBottom: 120, // Extra space for input area
+    paddingHorizontal: SPACING.m,
+    paddingTop: SPACING.m,
+    paddingBottom: 20,
   },
   messageContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: SPACING.m,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   userContainer: {
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   systemContainer: {
-    justifyContent: 'flex-start',
+    justifyContent: "flex-start",
   },
   avatarContainer: {
-    marginHorizontal: SPACING.s,
+    marginHorizontal: 6,
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   userAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  bubbleOuter: {
-    maxWidth: '75%',
-    borderRadius: BORDER_RADIUS.l,
-    overflow: 'hidden',
+  bubble: {
+    maxWidth: "78%",
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  userBubble: {},
+  userBubbleGradient: {
+    paddingHorizontal: SPACING.m,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  systemBubbleContent: {
+    paddingHorizontal: SPACING.m,
+    paddingVertical: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    ...SHADOWS.card,
-  },
-  userBubbleOuter: {
-    borderColor: 'transparent',
-  },
-  bubbleBlur: {
-    overflow: 'hidden',
-    borderRadius: BORDER_RADIUS.l,
-  },
-  userBubble: {
-    padding: SPACING.m,
-    borderRadius: BORDER_RADIUS.l,
-  },
-  systemBubble: {
-    padding: SPACING.m,
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   userText: {
-    ...TYPOGRAPHY.body,
+    fontSize: 15,
     color: COLORS.white,
-    lineHeight: 22,
+    lineHeight: 21,
   },
   systemText: {
-    ...TYPOGRAPHY.body,
+    fontSize: 15,
     color: COLORS.text,
-    lineHeight: 22,
+    lineHeight: 21,
   },
   loadingBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   loadingText: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 14,
     color: COLORS.textMuted,
     marginLeft: SPACING.s,
   },
-  
-  // Input
-  inputAreaOuter: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.glassBorder,
-    overflow: 'hidden',
-  },
-  inputBlur: {
-    overflow: 'hidden',
-  },
-  inputArea: {
-    paddingHorizontal: SPACING.l,
-    paddingTop: SPACING.m,
-    paddingBottom: 100, // Account for tab bar height (90px) + extra padding
-  },
+
+  // Input - Clean minimal design (no gradient box)
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
     paddingHorizontal: SPACING.m,
-    paddingVertical: SPACING.s,
+    paddingTop: SPACING.s,
+    paddingBottom: 100,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 24,
+    paddingLeft: SPACING.m,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   input: {
     flex: 1,
-    ...TYPOGRAPHY.body,
+    fontSize: 15,
     color: COLORS.text,
     maxHeight: 100,
-    paddingVertical: SPACING.s,
+    paddingVertical: 8,
+    paddingRight: SPACING.s,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surfaceLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: SPACING.s,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  sendButtonActive: {
-    backgroundColor: COLORS.primary,
-    ...SHADOWS.glow,
+  sendButtonInactive: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
