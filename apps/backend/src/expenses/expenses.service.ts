@@ -64,6 +64,71 @@ export class ExpensesService {
     return transaction;
   }
 
+  async addMultipleExpensesViaAI(userId: string, text: string) {
+    this.logger.log(`Processing multiple AI expenses for user ${userId}`);
+
+    // 1. Get parsed data from Gemini
+    const aiData = await this.geminiService.parseMultipleExpenses(text);
+    this.logger.log(`AI Response: ${JSON.stringify(aiData)}`);
+
+    if (!aiData.expenses || aiData.expenses.length === 0) {
+      return { 
+        transactions: [], 
+        summary: aiData.summary || 'No transactions found in the transcript' 
+      };
+    }
+
+    const createdTransactions: any[] = [];
+
+    // 2. Process each expense
+    for (const expense of aiData.expenses) {
+      try {
+        // Find or create category
+        let category = await this.prisma.category.findUnique({
+          where: { name: expense.category },
+        });
+
+        if (!category) {
+          category = await this.prisma.category.create({
+            data: {
+              name: expense.category,
+              icon: 'tag',
+              color: '#cccccc',
+            },
+          });
+        }
+
+        // Create Transaction
+        const transaction = await this.prisma.transaction.create({
+          data: {
+            amount: expense.amount,
+            currency: expense.currency || 'INR',
+            type: expense.type === 'INCOME' ? 'INCOME' : 'EXPENSE',
+            description: expense.description,
+            merchant: expense.merchant,
+            date: expense.date ? new Date(expense.date) : new Date(),
+            isAiGenerated: true,
+            confidenceScore: expense.confidenceScore || 0.9,
+            category: { connect: { id: category.id } },
+            user: { connect: { id: userId } },
+          },
+          include: { category: true },
+        });
+
+        createdTransactions.push(transaction);
+      } catch (error) {
+        this.logger.error(`Failed to create transaction for expense: ${JSON.stringify(expense)}`, error);
+        // Continue with other expenses even if one fails
+      }
+    }
+
+    return {
+      transactions: createdTransactions,
+      summary: `Successfully added ${createdTransactions.length} transaction(s)`,
+      originalSummary: aiData.summary,
+    };
+  }
+
   async getTransactions(userId: string) {
     return this.prisma.transaction.findMany({
       where: { userId },

@@ -26,6 +26,7 @@ import {
 import { useExpenseStore } from "../stores/useExpenseStore";
 import { VibeInput } from "../components/VibeInput";
 import ScanReceiptModal from "../components/ScanReceiptModal";
+import { VoiceInputButton } from "../components/VoiceInputButton";
 import {
   COLORS,
   GRADIENTS,
@@ -165,11 +166,11 @@ export default function LedgerScreen() {
           </View>
         </View>
 
-        {/* Input Section */}
         <View style={styles.inputSection}>
           <View style={styles.inputWrapper}>
             <VibeInput />
           </View>
+          <VoiceInputButton />
           <TouchableOpacity
             style={styles.scanButton}
             onPress={() => setShowScan(true)}

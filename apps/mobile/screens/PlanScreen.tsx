@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,6 +24,10 @@ import {
   TrendingDown,
   Clock,
   Repeat,
+  Zap,
+  Briefcase,
+  FileText,
+  PieChart,
 } from "lucide-react-native";
 import { useExpenseStore } from "../stores/useExpenseStore";
 import {
@@ -35,9 +40,51 @@ import {
 
 const { width, height } = Dimensions.get("window");
 
+type PlanCategory = "INCOME" | "BILL" | "SUBSCRIPTION" | "INVESTMENT";
+
+const CATEGORIES: Record<
+  PlanCategory,
+  {
+    label: string;
+    icon: any;
+    color: string;
+    gradient: [string, string];
+    type: "INCOME" | "EXPENSE";
+  }
+> = {
+  INCOME: {
+    label: "Income",
+    icon: TrendingUp,
+    color: COLORS.success,
+    gradient: [COLORS.success, "#00FFB3"],
+    type: "INCOME",
+  },
+  BILL: {
+    label: "Bills",
+    icon: FileText,
+    color: COLORS.danger,
+    gradient: [COLORS.danger, "#FF8A8A"],
+    type: "EXPENSE",
+  },
+  SUBSCRIPTION: {
+    label: "Subs",
+    icon: Zap,
+    color: "#8A2BE2",
+    gradient: ["#8A2BE2", "#BA55D3"],
+    type: "EXPENSE",
+  },
+  INVESTMENT: {
+    label: "Invest",
+    icon: PieChart,
+    color: "#FFD700",
+    gradient: ["#FFD700", "#FFA500"],
+    type: "EXPENSE",
+  },
+};
+
 export default function PlanScreen() {
   const { recurringPlans, fetchPlans, createPlan } = useExpenseStore();
-  const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE">("INCOME");
+  const [activeCategory, setActiveCategory] = useState<PlanCategory>("INCOME");
   const [modalVisible, setModalVisible] = useState(false);
 
   // Form State
@@ -57,11 +104,13 @@ export default function PlanScreen() {
     }
 
     setLoading(true);
+    const categoryConfig = CATEGORIES[activeCategory];
     await createPlan({
       name,
       amount: Number(amount),
       frequency,
-      type: activeTab,
+      type: categoryConfig.type,
+      category: activeCategory,
     });
     await fetchPlans();
     setLoading(false);
@@ -70,10 +119,24 @@ export default function PlanScreen() {
     setAmount("");
   };
 
-  const filteredPlans = recurringPlans.filter((p) => p.type === activeTab);
+  const filteredPlans = recurringPlans.filter((p) => {
+    const config = CATEGORIES[activeCategory];
+    
+    // Filter by Type first
+    if (p.type !== config.type) return false;
+
+    // Then by Category
+    if (activeCategory === "INCOME") return true; // All Income
+    if (activeCategory === "BILL") return p.category === "BILL" || p.category === "GENERAL" || !p.category;
+    return p.category === activeCategory;
+  });
 
   const renderPlanCard = ({ item }: { item: any }) => {
     const isIncome = item.type === "INCOME";
+    const categoryKey = (item.category as PlanCategory) || (isIncome ? "INCOME" : "BILL");
+    const config = CATEGORIES[categoryKey] || CATEGORIES.BILL;
+
+    const Icon = config.icon;
 
     return (
       <View style={styles.card}>
@@ -84,17 +147,11 @@ export default function PlanScreen() {
               style={[
                 styles.iconContainer,
                 {
-                  backgroundColor: isIncome
-                    ? "rgba(0, 214, 143, 0.12)"
-                    : "rgba(255, 107, 74, 0.12)",
+                  backgroundColor: config.color + "20", // 20% opacity
                 },
               ]}
             >
-              {isIncome ? (
-                <TrendingUp color={COLORS.success} size={20} />
-              ) : (
-                <TrendingDown color={COLORS.primary} size={20} />
-              )}
+              <Icon color={config.color} size={20} />
             </View>
 
             {/* Details */}
@@ -137,12 +194,11 @@ export default function PlanScreen() {
       {/* Smooth ambient glow */}
       <LinearGradient
         colors={[
-          "rgba(255, 107, 74, 0.18)",
-          "rgba(255, 115, 85, 0.1)",
-          "rgba(255, 130, 100, 0.04)",
+          CATEGORIES[activeCategory].color + "30", // Dynamic glow based on category
+          CATEGORIES[activeCategory].color + "10",
           "transparent",
         ]}
-        locations={[0, 0.15, 0.35, 0.6]}
+        locations={[0, 0.3, 0.6]}
         style={styles.ambientGlow}
         start={{ x: 1, y: 0 }}
         end={{ x: 0, y: 0.5 }}
@@ -160,61 +216,44 @@ export default function PlanScreen() {
           </View>
         </View>
 
-        {/* Tab Switcher */}
+        {/* Tab Switcher - Scrollable if needed, but 4 fits */}
         <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "INCOME" && styles.tabActive]}
-            onPress={() => setActiveTab("INCOME")}
-            activeOpacity={0.7}
-          >
-            {activeTab === "INCOME" ? (
-              <LinearGradient
-                colors={[COLORS.success, "#00FFB3"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
-              />
-            ) : null}
-            <TrendingUp
-              color={activeTab === "INCOME" ? COLORS.white : COLORS.textMuted}
-              size={18}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "INCOME" && styles.tabTextActive,
-              ]}
-            >
-              Income
-            </Text>
-          </TouchableOpacity>
+          {(Object.keys(CATEGORIES) as PlanCategory[]).map((cat) => {
+            const config = CATEGORIES[cat];
+            const isActive = activeCategory === cat;
+            const Icon = config.icon;
 
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "EXPENSE" && styles.tabActive]}
-            onPress={() => setActiveTab("EXPENSE")}
-            activeOpacity={0.7}
-          >
-            {activeTab === "EXPENSE" ? (
-              <LinearGradient
-                colors={[COLORS.primary, COLORS.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
-              />
-            ) : null}
-            <TrendingDown
-              color={activeTab === "EXPENSE" ? COLORS.white : COLORS.textMuted}
-              size={18}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "EXPENSE" && styles.tabTextActive,
-              ]}
-            >
-              Expenses
-            </Text>
-          </TouchableOpacity>
+            return (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.tab, isActive && styles.tabActive]}
+                onPress={() => setActiveCategory(cat)}
+                activeOpacity={0.7}
+              >
+                {isActive ? (
+                  <LinearGradient
+                    colors={config.gradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                ) : null}
+                <Icon
+                  color={isActive ? COLORS.white : COLORS.textMuted}
+                  size={16}
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    isActive && styles.tabTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {config.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* List */}
@@ -230,12 +269,10 @@ export default function PlanScreen() {
                 <Calendar color={COLORS.textMuted} size={40} />
               </View>
               <Text style={styles.emptyTitle}>
-                No {activeTab.toLowerCase()} plans yet
+                No {CATEGORIES[activeCategory].label.toLowerCase()} found
               </Text>
               <Text style={styles.emptySubtitle}>
-                Add recurring{" "}
-                {activeTab === "INCOME" ? "income sources" : "expenses"} to
-                track them
+                Add a new {CATEGORIES[activeCategory].label.toLowerCase()} plan to track it automatically.
               </Text>
             </View>
           }
@@ -248,7 +285,7 @@ export default function PlanScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={[COLORS.primary, COLORS.secondary]}
+            colors={CATEGORIES[activeCategory].gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.fabGradient}
@@ -267,12 +304,10 @@ export default function PlanScreen() {
             {/* Smooth ambient glow for modal */}
             <LinearGradient
               colors={[
-                "rgba(255, 107, 74, 0.15)",
-                "rgba(255, 115, 85, 0.08)",
-                "rgba(255, 130, 100, 0.03)",
+                CATEGORIES[activeCategory].color + "20",
                 "transparent",
               ]}
-              locations={[0, 0.15, 0.35, 0.6]}
+              locations={[0, 0.4]}
               style={styles.modalAmbientGlow}
               start={{ x: 1, y: 0 }}
               end={{ x: 0, y: 0.5 }}
@@ -287,11 +322,10 @@ export default function PlanScreen() {
                 <View style={styles.modalHeader}>
                   <View>
                     <Text style={styles.modalTitle}>
-                      New {activeTab === "INCOME" ? "Income" : "Expense"}
+                      New {CATEGORIES[activeCategory].label}
                     </Text>
                     <Text style={styles.modalSubtitle}>
-                      Add a recurring{" "}
-                      {activeTab === "INCOME" ? "income source" : "expense"}
+                      Add to {CATEGORIES[activeCategory].label.toLowerCase()} plans
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -310,7 +344,15 @@ export default function PlanScreen() {
                     <View style={styles.inputContainer}>
                       <TextInput
                         style={styles.input}
-                        placeholder="e.g. Netflix, Salary"
+                        placeholder={
+                          activeCategory === "INCOME"
+                            ? "e.g. Salary, Freelance"
+                            : activeCategory === "SUBSCRIPTION"
+                            ? "e.g. Netflix, Spotify"
+                            : activeCategory === "INVESTMENT"
+                            ? "e.g. SIP, Mutual Fund"
+                            : "e.g. Rent, EMI"
+                        }
                         placeholderTextColor={COLORS.textMuted}
                         value={name}
                         onChangeText={setName}
@@ -350,7 +392,7 @@ export default function PlanScreen() {
                         >
                           {frequency === f && (
                             <LinearGradient
-                              colors={[COLORS.primary, COLORS.secondary]}
+                              colors={CATEGORIES[activeCategory].gradient}
                               start={{ x: 0, y: 0 }}
                               end={{ x: 1, y: 1 }}
                               style={StyleSheet.absoluteFillObject}
@@ -378,7 +420,7 @@ export default function PlanScreen() {
                   disabled={loading}
                 >
                   <LinearGradient
-                    colors={[COLORS.primary, COLORS.secondary]}
+                    colors={CATEGORIES[activeCategory].gradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.createButton}
@@ -454,6 +496,7 @@ const styles = StyleSheet.create({
     padding: 4,
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
+    gap: 4,
   },
   tab: {
     flex: 1,
@@ -462,12 +505,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: SPACING.m - 4,
     borderRadius: BORDER_RADIUS.m,
-    gap: SPACING.s,
+    gap: 6,
     overflow: "hidden",
   },
   tabActive: {},
   tabText: {
-    fontSize: 15,
+    fontSize: 12, // Slightly smaller to fit 4 items
     fontWeight: "600",
     color: COLORS.textMuted,
   },
@@ -486,6 +529,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.s,
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
+    backgroundColor: COLORS.surface,
   },
   cardBlur: {
     overflow: "hidden",
@@ -558,6 +602,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.text,
     marginBottom: SPACING.s,
+    textTransform: "capitalize"
   },
   emptySubtitle: {
     fontSize: 14,
@@ -573,6 +618,11 @@ const styles = StyleSheet.create({
     right: SPACING.l,
     borderRadius: 28,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   fabGradient: {
     width: 56,
@@ -687,7 +737,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.glassBorder,
   },
   pillActive: {
-    borderColor: COLORS.primary,
+    borderColor: "transparent",
   },
   pillText: {
     fontSize: 14,

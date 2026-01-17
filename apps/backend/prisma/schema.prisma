@@ -68,6 +68,8 @@ model RecurringPlan {
   
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  category     String?       @default("GENERAL") // e.g., "BILL", "SUBSCRIPTION", "INVESTMENT", "INCOME"
 }
 
 model Category {

@@ -20,9 +20,10 @@ interface ExpenseStore {
   loading: boolean;
   error: string | null;
   addExpenseViaAI: (text: string) => Promise<void>;
+  addMultipleExpensesViaVoice: (transcript: string) => Promise<{ addedCount: number; expenses: Expense[] }>;
   fetchExpenses: () => Promise<void>;
   askAffordability: (query: string) => Promise<any>;
-  createPlan: (data: { name: string; amount: number; frequency: string; type: 'INCOME' | 'EXPENSE' }) => Promise<void>;
+  createPlan: (data: { name: string; amount: number; frequency: string; type: 'INCOME' | 'EXPENSE'; category?: string }) => Promise<void>;
   recurringPlans: RecurringPlan[];
   fetchPlans: () => Promise<void>;
   dashboardStats: { income: number; expense: number; savings: number; savingsRate: number } | null;
@@ -38,6 +39,7 @@ interface RecurringPlan {
   amount: string;
   frequency: string;
   type: 'INCOME' | 'EXPENSE';
+  category?: string;
   nextDueDate: string;
 }
 
@@ -82,6 +84,48 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
       set({ loading: false, error: 'Failed to add expense. Please try again.' });
     }
   },
+  addMultipleExpensesViaVoice: async (transcript: string) => {
+    set({ loading: true, error: null });
+    try {
+      const userId = 'test-user-id';
+      console.log('Sending voice transcript to API:', transcript);
+
+      const response = await fetch(`${API_URL}/expenses/ai-add-multiple`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: transcript, userId }),
+      });
+
+      console.log('API Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`Failed to process voice input: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('API Response:', JSON.stringify(result));
+      const { transactions } = result;
+
+      // Add new transactions to the store
+      set((state) => ({
+        expenses: [...(transactions || []), ...state.expenses],
+        loading: false,
+      }));
+
+      return {
+        addedCount: transactions?.length || 0,
+        expenses: transactions || [],
+      };
+    } catch (error) {
+      console.error('Voice input error:', error);
+      set({ loading: false, error: 'Failed to process voice input. Please try again.' });
+      throw error;
+    }
+  },
   fetchExpenses: async () => {
     set({ loading: true, error: null });
     try {
@@ -110,7 +154,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
       return { verdict: 'Error', advice: 'Could not connect to AI Coach.', color: 'gray' };
     }
   },
-  createPlan: async (data) => {
+  createPlan: async (data: { name: string; amount: number; frequency: string; type: 'INCOME' | 'EXPENSE'; category?: string }) => {
     try {
       const userId = 'test-user-id';
       await fetch(`${API_URL}/recurring`, {

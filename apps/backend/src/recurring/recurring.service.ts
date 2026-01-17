@@ -75,6 +75,7 @@ export class RecurringService {
     currency: string;
     frequency: string;
     type: 'INCOME' | 'EXPENSE';
+    category?: string;
     userId: string;
   }) {
     const now = new Date();
@@ -92,6 +93,7 @@ export class RecurringService {
         currency: data.currency || 'INR',
         frequency: data.frequency,
         type: data.type,
+        category: data.category || 'GENERAL',
         nextDueDate: nextDate,
         userId: data.userId,
       },

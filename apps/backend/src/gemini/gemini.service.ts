@@ -52,6 +52,68 @@ export class GeminiService {
     }
   }
 
+  async parseMultipleExpenses(rawText: string): Promise<{
+    expenses: Array<{
+      amount: number;
+      currency: string;
+      type: 'INCOME' | 'EXPENSE';
+      description: string;
+      merchant: string;
+      date: string;
+      category: string;
+      confidenceScore: number;
+    }>;
+    summary: string;
+  }> {
+    const prompt = `
+      Analyze this voice transcript and extract ALL expenses and income mentioned.
+      The user may have mentioned multiple transactions in a single statement.
+      
+      Extract for EACH transaction:
+      - amount (number, required)
+      - currency (string, 3-letter code, default 'INR')
+      - type ('INCOME' or 'EXPENSE'. Keywords like salary, received, bonus, payment received -> INCOME)
+      - description (string, brief description of the transaction)
+      - merchant (string, where money was spent or source of income)
+      - date (string, ISO 8601 YYYY-MM-DD, default to today: ${new Date().toISOString().split('T')[0]})
+      - category (string, e.g., Food, Travel, Shopping, Utilities, Salary, Freelance, Entertainment, Other)
+      - confidenceScore (number, 0-1, how confident you are in this extraction)
+
+      Return ONLY a JSON object with:
+      {
+        "expenses": [array of transaction objects],
+        "summary": "Brief summary like 'Found 3 transactions: 2 expenses totaling ₹500 and 1 income of ₹10000'"
+      }
+      
+      If no valid transactions found, return { "expenses": [], "summary": "No transactions found" }
+      
+      NO MARKDOWN FORMATTING. Only valid JSON.
+      
+      Transcript: "${rawText}"
+    `;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      let text = response.text();
+      
+      // Clean up potential markdown code blocks
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      const parsed = JSON.parse(text);
+      
+      // Validate structure
+      if (!parsed.expenses || !Array.isArray(parsed.expenses)) {
+        return { expenses: [], summary: 'Failed to parse expenses' };
+      }
+      
+      return parsed;
+    } catch (error) {
+      this.logger.error('Failed to parse multiple expenses with Gemini', error);
+      throw error;
+    }
+  }
+
   async askAffordability(userId: string, query: string) {
     // 1. Calculate Monthly Income (This month)
     const now = new Date();

@@ -10,6 +10,11 @@ export class ExpensesController {
     return this.expensesService.addExpenseViaAI(body.userId, body.text);
   }
 
+  @Post('ai-add-multiple')
+  async addMultipleExpensesViaAI(@Body() body: { text: string; userId: string }) {
+    return this.expensesService.addMultipleExpensesViaAI(body.userId, body.text);
+  }
+
   @Get()
   async getExpenses(@Query('userId') userId: string) {
     return this.expensesService.getTransactions(userId);
