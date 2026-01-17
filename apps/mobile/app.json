@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "SmartSpend",
+    "slug": "smartspend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "plugins": [
       [
@@ -17,9 +17,9 @@
       ]
     ],
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0A0A0F"
     },
     "ios": {
       "supportsTablet": true,
@@ -27,22 +27,22 @@
         "NSSpeechRecognitionUsageDescription": "Allow SmartSpend to use speech recognition to add expenses by voice.",
         "NSMicrophoneUsageDescription": "Allow SmartSpend to use the microphone for voice input."
       },
-      "bundleIdentifier": "com.anonymous.mobile"
+      "bundleIdentifier": "com.smartspend.app"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#0A0A0F"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.anonymous.mobile"
+      "package": "com.smartspend.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logo.png"
     }
   }
 }
