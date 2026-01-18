@@ -19,6 +19,7 @@ import {
   ArrowDownRight,
 } from "lucide-react-native";
 import { useExpenseStore } from "../stores/useExpenseStore";
+import { useAuthStore } from "../stores/useAuthStore";
 import {
   COLORS,
   GRADIENTS,
@@ -39,9 +40,11 @@ const getGreeting = () => {
 
 export default function DashboardScreen() {
   const { dashboardStats, fetchDashboardStats } = useExpenseStore();
+  const { userProfile } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  const userName = "User";
+  // Use actual user name from auth store
+  const userName = userProfile?.name || "User";
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

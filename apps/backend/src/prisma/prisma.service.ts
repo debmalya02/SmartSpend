@@ -6,16 +6,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit() {
     await this.$connect();
     
-    // Ensure test user exists
+    // Ensure test user exists (for development only)
     const testUserId = 'test-user-id';
     const user = await this.user.findUnique({ where: { id: testUserId } });
     if (!user) {
       await this.user.create({
         data: {
           id: testUserId,
-          email: 'test@example.com',
+          phone: '+911234567890',
           name: 'Test Agent',
           currency: 'INR',
+          isOnboarded: true,
         },
       });
       console.log(`Created test user: ${testUserId}`);

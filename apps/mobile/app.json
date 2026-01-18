@@ -43,6 +43,12 @@
     },
     "web": {
       "favicon": "./assets/logo.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "36344df0-22f7-4ae2-a239-eefbd7dfcbc8"
+      }
+    },
+    "owner": "debmalya02s-organization"
   }
 }

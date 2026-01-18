@@ -9,6 +9,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RecurringModule } from './recurring/recurring.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ConfigModule } from '@nestjs/config';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ConfigModule } from '@nestjs/config';
     PrismaModule,
     RecurringModule,
     DashboardModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

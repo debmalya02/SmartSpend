@@ -39,6 +39,7 @@ export const COLORS = {
     
     // Legacy compatibility
     card: '#1A1A24',
+    border: 'rgba(255, 255, 255, 0.12)',
     white: '#FFFFFF',
 };
 

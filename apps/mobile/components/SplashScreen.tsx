@@ -114,7 +114,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           {
             opacity: logoOpacity,
             transform: [
-              { scale: Animated.multiply(logoScale, pulseAnim) },
+              { scale: logoScale },
             ],
           },
         ]}
@@ -123,6 +123,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           source={require('../assets/logo.png')}
           style={styles.logo}
           resizeMode="contain"
+          onError={(e) => console.log('Logo load error:', e.nativeEvent.error)}
         />
       </Animated.View>
 

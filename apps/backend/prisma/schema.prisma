@@ -18,8 +18,9 @@ enum TransactionType {
 
 model User {
   id            String    @id @default(cuid())
-  email         String    @unique
+  phone         String    @unique
   name          String?
+  isOnboarded   Boolean   @default(false)  // Track if user completed username setup
   currency      String    @default("INR") // Default based on your location
   createdAt     DateTime  @default(now())
   transactions  Transaction[]

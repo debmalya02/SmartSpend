@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useAuthStore } from './useAuthStore';
 
 interface Expense {
   id: string;
@@ -44,10 +45,19 @@ interface RecurringPlan {
 }
 
 // Replace with your actual local IP if testing on real device, or localhost for simulator
-// const API_URL = 'http://192.168.0.177:3000'; // Local Machine IP
+const API_URL = 'http://192.168.0.177:3000'; // Local Machine IP
 // const API_URL = 'http://10.0.2.2:3000'; // For Android Emulator
 // const API_URL = 'http://localhost:3000'; // For iOS Simulator
-const API_URL = 'https://smartspend-h9vm.onrender.com'; // Production
+// const API_URL = 'https://smartspend-h9vm.onrender.com'; // Production
+
+// Helper function to get current user ID
+const getUserId = () => {
+  const { userProfile } = useAuthStore.getState();
+  if (!userProfile?.id) {
+    throw new Error('User not authenticated');
+  }
+  return userProfile.id;
+};
 
 export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   expenses: [],
@@ -58,7 +68,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   addExpenseViaAI: async (text: string) => {
     set({ loading: true, error: null });
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
 
       const response = await fetch(`${API_URL}/expenses/ai-add`, {
         method: 'POST',
@@ -86,7 +96,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   addMultipleExpensesViaVoice: async (transcript: string) => {
     set({ loading: true, error: null });
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
       console.log('Sending voice transcript to API:', transcript);
 
       const response = await fetch(`${API_URL}/expenses/ai-add-multiple`, {
@@ -128,7 +138,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   fetchExpenses: async () => {
     set({ loading: true, error: null });
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
       const response = await fetch(`${API_URL}/expenses?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch expenses');
       const data = await response.json();
@@ -140,7 +150,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   },
   askAffordability: async (query: string) => {
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
       const response = await fetch(`${API_URL}/ai/ask-affordability`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,7 +165,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   },
   createPlan: async (data: { name: string; amount: number; frequency: string; type: 'INCOME' | 'EXPENSE'; category?: string }) => {
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
       await fetch(`${API_URL}/recurring`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -167,7 +177,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   },
   fetchPlans: async () => {
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
       const response = await fetch(`${API_URL}/recurring?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch plans');
       const data = await response.json();
@@ -178,7 +188,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   },
   fetchDashboardStats: async () => {
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
       const response = await fetch(`${API_URL}/dashboard?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
       const data = await response.json();
@@ -208,7 +218,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
   addTransaction: async (data: any) => {
     set({ loading: true, error: null });
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
       const response = await fetch(`${API_URL}/expenses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,7 +244,7 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
     }));
 
     try {
-      const userId = 'test-user-id';
+      const userId = getUserId();
       const response = await fetch(`${API_URL}/expenses/${id}?userId=${userId}`, {
         method: 'DELETE',
       });
