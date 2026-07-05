@@ -8,7 +8,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Bot, Send, Sparkles, User } from "lucide-react-native";
@@ -23,6 +27,7 @@ const { height } = Dimensions.get("window");
 export default function AiCoachScreen() {
   const { askAffordability } = useExpenseStore();
   const scrollViewRef = useRef<ScrollView>(null);
+  const tabBarHeight = useBottomTabBarHeight();
   const [messages, setMessages] = useState<
     { role: "user" | "system"; text: string }[]
   >([
@@ -33,6 +38,23 @@ export default function AiCoachScreen() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  React.useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardWillHideListener.remove();
+      keyboardWillShowListener.remove();
+    };
+  }, []);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -132,6 +154,11 @@ export default function AiCoachScreen() {
       />
 
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -175,7 +202,7 @@ export default function AiCoachScreen() {
         </ScrollView>
 
         {/* Input Area - Clean minimal design */}
-        <View style={styles.inputWrapper}>
+        <View style={[styles.inputWrapper, { paddingBottom: isKeyboardVisible ? SPACING.m : tabBarHeight + SPACING.m }]}>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -191,22 +218,25 @@ export default function AiCoachScreen() {
               onPress={sendMessage}
               disabled={loading || !input.trim()}
               activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               {input.trim() ? (
                 <LinearGradient
                   colors={[COLORS.primary, COLORS.secondary]}
                   style={styles.sendButton}
+                  pointerEvents="none"
                 >
                   <Send color={COLORS.white} size={16} />
                 </LinearGradient>
               ) : (
-                <View style={styles.sendButtonInactive}>
+                <View style={styles.sendButtonInactive} pointerEvents="none">
                   <Send color={COLORS.textMuted} size={16} />
                 </View>
               )}
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );
@@ -340,7 +370,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     paddingHorizontal: SPACING.m,
     paddingTop: SPACING.s,
-    paddingBottom: 100,
+    // paddingBottom handled dynamically inline
   },
   inputContainer: {
     flexDirection: "row",

@@ -36,34 +36,51 @@ export default function TabNavigator() {
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarShowLabel: true,
         tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabBarItem,
       }}
     >
       <Tab.Screen 
         name="Dashboard" 
         component={DashboardScreen}
         options={{
-          tabBarIcon: ({ color }) => <Home color={color} size={24} />,
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabIconWrapper}>
+              <Home color={color} size={24} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen 
         name="Ledger" 
         component={LedgerScreen}
         options={{
-          tabBarIcon: ({ color }) => <Receipt color={color} size={24} />,
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabIconWrapper}>
+              <Receipt color={color} size={24} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen 
         name="AI Coach" 
         component={AiCoachScreen}
         options={{
-          tabBarIcon: ({ color }) => <Bot color={color} size={24} />,
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabIconWrapper}>
+              <Bot color={color} size={24} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen 
         name="Plan" 
         component={PlanScreen}
         options={{
-          tabBarIcon: ({ color }) => <Calendar color={color} size={24} />,
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabIconWrapper}>
+              <Calendar color={color} size={24} />
+            </View>
+          ),
         }}
       />
     </Tab.Navigator>
@@ -91,5 +108,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     marginTop: 4,
+  },
+  tabIconWrapper: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    pointerEvents: 'none',
+  },
+  tabBarItem: {
+    paddingTop: 4,
   },
 });

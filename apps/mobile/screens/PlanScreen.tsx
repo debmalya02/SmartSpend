@@ -241,6 +241,7 @@ export default function PlanScreen() {
                 <Icon
                   color={isActive ? COLORS.white : COLORS.textMuted}
                   size={16}
+                  pointerEvents="none"
                 />
                 <Text
                   style={[
@@ -283,12 +284,14 @@ export default function PlanScreen() {
           style={styles.fab}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.8}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <LinearGradient
             colors={CATEGORIES[activeCategory].gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.fabGradient}
+            pointerEvents="none"
           >
             <Plus color={COLORS.white} size={26} strokeWidth={2.5} />
           </LinearGradient>
@@ -331,8 +334,11 @@ export default function PlanScreen() {
                   <TouchableOpacity
                     onPress={() => setModalVisible(false)}
                     style={styles.closeButton}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <X color={COLORS.textSecondary} size={22} />
+                    <View pointerEvents="none">
+                      <X color={COLORS.textSecondary} size={22} />
+                    </View>
                   </TouchableOpacity>
                 </View>
 
@@ -424,6 +430,7 @@ export default function PlanScreen() {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.createButton}
+                    pointerEvents="none"
                   >
                     <Text style={styles.buttonText}>
                       {loading ? "Creating..." : "Create Plan"}

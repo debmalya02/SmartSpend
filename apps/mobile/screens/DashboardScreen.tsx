@@ -6,6 +6,7 @@ import {
   ScrollView,
   RefreshControl,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,6 +18,10 @@ import {
   Sparkles,
   ArrowUpRight,
   ArrowDownRight,
+  Calendar,
+  Activity,
+  BarChart3,
+  CalendarDays,
 } from "lucide-react-native";
 import { useExpenseStore } from "../stores/useExpenseStore";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -25,10 +30,9 @@ import {
   GRADIENTS,
   SPACING,
   BORDER_RADIUS,
-  TYPOGRAPHY,
 } from "../constants/Theme";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 // Get greeting based on time
 const getGreeting = () => {
@@ -39,7 +43,7 @@ const getGreeting = () => {
 };
 
 export default function DashboardScreen() {
-  const { dashboardStats, fetchDashboardStats } = useExpenseStore();
+  const { dashboardStats, fetchDashboardStats, loading } = useExpenseStore();
   const { userProfile } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -56,19 +60,51 @@ export default function DashboardScreen() {
     fetchDashboardStats();
   }, []);
 
-  const stats = dashboardStats || {
+  const defaultStats = {
     income: 0,
     expense: 0,
-    savings: 0,
-    savingsRate: 0,
+    netBalance: 0,
+    daily: { today: 0, yesterday: 0, percentageChange: 0 },
+    monthlyExtremes: { highest: null, lowest: null },
+    weeklyReport: [],
+  };
+
+  // Safely merge dashboardStats with defaultStats to avoid undefined properties
+  const stats = {
+    ...defaultStats,
+    ...(dashboardStats || {}),
+    daily: { ...defaultStats.daily, ...(dashboardStats?.daily || {}) },
+    monthlyExtremes: { ...defaultStats.monthlyExtremes, ...(dashboardStats?.monthlyExtremes || {}) },
   };
 
   const greeting = getGreeting();
-  const netBalance = stats.income - stats.expense;
+
+  // Helper to format dates
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "N/A";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  };
+
+  // Find max amount in weekly report for bar chart scaling
+  const maxWeeklyAmount = Math.max(...(stats.weeklyReport || []).map(r => r.amount), 1); // fallback to 1 to avoid div by 0
+
+  // Helper for safe formatting
+  const formatAmount = (amount: any) => {
+    return (Number(amount) || 0).toLocaleString();
+  };
+
+  if (loading && !dashboardStats) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Smooth ambient glow - diagonal gradient from top-right */}
+      {/* Smooth ambient glow */}
       <LinearGradient
         colors={[
           "rgba(255, 107, 74, 0.18)",
@@ -106,7 +142,7 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {/* Main Balance Card */}
+          {/* Main Net Balance Card */}
           <View style={styles.balanceCard}>
             <LinearGradient
               colors={["rgba(255, 107, 74, 0.08)", "rgba(255, 107, 74, 0.02)"]}
@@ -115,42 +151,19 @@ export default function DashboardScreen() {
               end={{ x: 1, y: 1 }}
             >
               <View style={styles.balanceHeader}>
-                <Text style={styles.balanceLabel}>Total Savings</Text>
-                <View style={styles.savingsRateBadge}>
-                  <TrendingUp color={COLORS.success} size={14} />
-                  <Text style={styles.savingsRateText}>
-                    {stats.savingsRate}%
-                  </Text>
+                <View style={styles.balanceHeaderLeft}>
+                  <Wallet color={COLORS.primary} size={20} style={{ marginRight: 8 }} />
+                  <Text style={styles.balanceLabel}>Net Balance</Text>
                 </View>
+                <Text style={styles.balanceSubtext}>This Month</Text>
               </View>
 
               <Text style={styles.balanceAmount}>
                 <Text style={styles.currencySymbol}>₹</Text>
-                {stats.savings.toLocaleString()}
+                {formatAmount(stats.netBalance)}
               </Text>
-
-              <Text style={styles.balanceSubtext}>this month</Text>
-
-              {/* Progress indicator */}
-              <View style={styles.progressWrapper}>
-                <View style={styles.progressTrack}>
-                  <LinearGradient
-                    colors={[COLORS.primary, COLORS.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[
-                      styles.progressBar,
-                      { width: `${Math.min(stats.savingsRate, 100)}%` },
-                    ]}
-                  />
-                </View>
-                <View style={styles.progressLabels}>
-                  <Text style={styles.progressLabel}>0%</Text>
-                  <Text style={styles.progressLabel}>Target</Text>
-                </View>
-              </View>
             </LinearGradient>
-
+            
             {/* Accent line */}
             <LinearGradient
               colors={[COLORS.primary, "transparent"]}
@@ -160,118 +173,163 @@ export default function DashboardScreen() {
             />
           </View>
 
-          {/* Quick Stats Row */}
-          <View style={styles.quickStats}>
-            {/* Income */}
-            <View style={styles.quickStatCard}>
-              <BlurView intensity={20} tint="dark" style={styles.quickStatBlur}>
-                <View style={styles.quickStatContent}>
-                  <View style={styles.quickStatHeader}>
-                    <View style={[styles.quickStatIcon, styles.incomeIcon]}>
+          {/* Quick Stats Row: Income & Expense */}
+          <View style={styles.row}>
+            <View style={styles.halfCard}>
+              <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+                <View style={styles.cardContent}>
+                  <View style={styles.cardHeader}>
+                    <View style={[styles.iconBg, { backgroundColor: "rgba(0, 214, 143, 0.12)" }]}>
                       <ArrowDownRight color={COLORS.success} size={16} />
                     </View>
-                    <Text style={styles.quickStatLabel}>Income</Text>
+                    <Text style={styles.cardTitle}>Income</Text>
                   </View>
-                  <Text style={[styles.quickStatValue, styles.incomeValue]}>
-                    ₹{stats.income.toLocaleString()}
+                  <Text style={[styles.cardValue, { color: COLORS.success }]}>
+                    ₹{formatAmount(stats.income)}
                   </Text>
                 </View>
               </BlurView>
             </View>
 
-            {/* Expenses */}
-            <View style={styles.quickStatCard}>
-              <BlurView intensity={20} tint="dark" style={styles.quickStatBlur}>
-                <View style={styles.quickStatContent}>
-                  <View style={styles.quickStatHeader}>
-                    <View style={[styles.quickStatIcon, styles.expenseIcon]}>
+            <View style={styles.halfCard}>
+              <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+                <View style={styles.cardContent}>
+                  <View style={styles.cardHeader}>
+                    <View style={[styles.iconBg, { backgroundColor: "rgba(255, 71, 87, 0.12)" }]}>
                       <ArrowUpRight color={COLORS.danger} size={16} />
                     </View>
-                    <Text style={styles.quickStatLabel}>Expenses</Text>
+                    <Text style={styles.cardTitle}>Expenses</Text>
                   </View>
-                  <Text style={[styles.quickStatValue, styles.expenseValue]}>
-                    ₹{stats.expense.toLocaleString()}
+                  <Text style={[styles.cardValue, { color: COLORS.text }]}>
+                    ₹{formatAmount(stats.expense)}
                   </Text>
                 </View>
               </BlurView>
             </View>
           </View>
 
-          {/* Net Balance Card */}
-          <View style={styles.netBalanceCard}>
-            <BlurView intensity={25} tint="dark" style={styles.netBalanceBlur}>
-              <View style={styles.netBalanceContent}>
-                <View style={styles.netBalanceLeft}>
-                  <View style={styles.netBalanceIconContainer}>
-                    <Wallet color={COLORS.primary} size={22} />
+          {/* Section: Daily Spending */}
+          <Text style={styles.sectionTitle}>Daily Insights</Text>
+          <View style={styles.analyticsCard}>
+            <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+              <View style={styles.analyticsContent}>
+                <View style={styles.analyticsHeader}>
+                  <View style={styles.analyticsHeaderLeft}>
+                    <Activity color={COLORS.primary} size={20} />
+                    <Text style={styles.analyticsTitle}>Today's Spend</Text>
                   </View>
-                  <View>
-                    <Text style={styles.netBalanceLabel}>Net Balance</Text>
-                    <Text style={styles.netBalanceHint}>Income - Expenses</Text>
-                  </View>
+                  
+                  {/* Dynamic Trend Indicator */}
+                  {stats.daily.percentageChange !== 0 && (
+                    <View style={[
+                      styles.trendBadge, 
+                      { backgroundColor: stats.daily.percentageChange > 0 ? "rgba(255, 71, 87, 0.1)" : "rgba(0, 214, 143, 0.1)" }
+                    ]}>
+                      {stats.daily.percentageChange > 0 ? (
+                        <TrendingUp color={COLORS.danger} size={14} />
+                      ) : (
+                        <TrendingDown color={COLORS.success} size={14} />
+                      )}
+                      <Text style={[
+                        styles.trendText, 
+                        { color: stats.daily.percentageChange > 0 ? COLORS.danger : COLORS.success }
+                      ]}>
+                        {Math.abs(stats.daily.percentageChange)}% vs yday
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <Text
-                  style={[
-                    styles.netBalanceValue,
-                    netBalance >= 0
-                      ? styles.positiveBalance
-                      : styles.negativeBalance,
-                  ]}
-                >
-                  {netBalance >= 0 ? "+" : ""}₹
-                  {Math.abs(netBalance).toLocaleString()}
+                
+                <Text style={styles.analyticsValue}>
+                  ₹{formatAmount(stats.daily.today)}
                 </Text>
               </View>
+            </BlurView>
+          </View>
 
-              {/* Mini bar */}
-              <View style={styles.miniBarContainer}>
-                <View style={styles.miniBarTrack}>
-                  <View
-                    style={[
-                      styles.miniBarIncome,
-                      {
-                        width:
-                          stats.income > 0
-                            ? `${
-                                (stats.income /
-                                  (stats.income + stats.expense)) *
-                                100
-                              }%`
-                            : "50%",
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.miniBarExpense,
-                      {
-                        width:
-                          stats.expense > 0
-                            ? `${
-                                (stats.expense /
-                                  (stats.income + stats.expense)) *
-                                100
-                              }%`
-                            : "50%",
-                      },
-                    ]}
-                  />
+          {/* Section: Monthly Extremes */}
+          <View style={styles.row}>
+            <View style={styles.halfCard}>
+              <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitleMuted}>Highest Spend Day</Text>
+                  <Text style={styles.cardValueSmall}>
+                    ₹{formatAmount(stats.monthlyExtremes?.highest?.amount)}
+                  </Text>
+                  <View style={styles.dateRow}>
+                    <CalendarDays color={COLORS.textMuted} size={12} />
+                    <Text style={styles.dateText}>
+                      {formatDate(stats.monthlyExtremes.highest?.date || "")}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.miniBarLabels}>
-                  <View style={styles.miniBarLabelItem}>
-                    <View style={[styles.miniBarDot, styles.incomeDot]} />
-                    <Text style={styles.miniBarLabelText}>Income</Text>
+              </BlurView>
+            </View>
+
+            <View style={styles.halfCard}>
+              <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitleMuted}>Lowest Spend Day</Text>
+                  <Text style={styles.cardValueSmall}>
+                    ₹{formatAmount(stats.monthlyExtremes?.lowest?.amount)}
+                  </Text>
+                  <View style={styles.dateRow}>
+                    <CalendarDays color={COLORS.textMuted} size={12} />
+                    <Text style={styles.dateText}>
+                      {formatDate(stats.monthlyExtremes.lowest?.date || "")}
+                    </Text>
                   </View>
-                  <View style={styles.miniBarLabelItem}>
-                    <View style={[styles.miniBarDot, styles.expenseDot]} />
-                    <Text style={styles.miniBarLabelText}>Expenses</Text>
+                </View>
+              </BlurView>
+            </View>
+          </View>
+
+          {/* Section: Weekly Trend */}
+          <Text style={styles.sectionTitle}>Weekly Trend</Text>
+          <View style={styles.chartCard}>
+            <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+              <View style={styles.chartContent}>
+                <View style={styles.analyticsHeader}>
+                  <View style={styles.analyticsHeaderLeft}>
+                    <BarChart3 color={COLORS.primary} size={20} />
+                    <Text style={styles.analyticsTitle}>Last 7 Days</Text>
                   </View>
+                </View>
+                
+                {/* Simple Bar Chart */}
+                <View style={styles.chartContainer}>
+                  {(stats.weeklyReport || []).map((item, index) => {
+                    const heightPercent = maxWeeklyAmount > 0 ? (item.amount / maxWeeklyAmount) * 100 : 0;
+                    // Highlight today
+                    const isToday = index === stats.weeklyReport.length - 1;
+                    
+                    return (
+                      <View key={index} style={styles.barWrapper}>
+                        {/* Tooltip for amount */}
+                        {item.amount > 0 && (
+                          <Text style={styles.barTooltip}>
+                            {item.amount >= 1000 ? `${(item.amount / 1000).toFixed(1)}k` : item.amount}
+                          </Text>
+                        )}
+                        <View style={styles.barTrack}>
+                          <LinearGradient
+                            colors={isToday ? [COLORS.primary, COLORS.secondary] : ["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]}
+                            style={[styles.barFill, { height: `${Math.max(heightPercent, 2)}%` }]} // min height 2%
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                          />
+                        </View>
+                        <Text style={[styles.barLabel, isToday && styles.barLabelToday]}>
+                          {item.day}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
             </BlurView>
           </View>
 
-          {/* Bottom spacing */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </SafeAreaView>
@@ -298,8 +356,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.l,
     paddingTop: SPACING.m,
   },
-
-  // Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -329,7 +385,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 107, 74, 0.2)",
   },
 
-  // Balance Card
+  // Main Balance Card
   balanceCard: {
     borderRadius: BORDER_RADIUS.xl,
     overflow: "hidden",
@@ -344,7 +400,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: SPACING.m,
+    marginBottom: SPACING.s,
+  },
+  balanceHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   balanceLabel: {
     fontSize: 14,
@@ -353,214 +413,192 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-  savingsRateBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 214, 143, 0.1)",
-    paddingHorizontal: SPACING.s,
-    paddingVertical: 4,
-    borderRadius: BORDER_RADIUS.round,
-    gap: 4,
-  },
-  savingsRateText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.success,
+  balanceSubtext: {
+    fontSize: 12,
+    color: COLORS.textMuted,
   },
   balanceAmount: {
-    fontSize: 52,
+    fontSize: 48,
     fontWeight: "800",
     color: COLORS.text,
-    letterSpacing: -2,
-    marginBottom: 4,
+    letterSpacing: -1.5,
   },
   currencySymbol: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "600",
     color: COLORS.textSecondary,
-  },
-  balanceSubtext: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    marginBottom: SPACING.l,
-  },
-  progressWrapper: {
-    marginTop: SPACING.s,
-  },
-  progressTrack: {
-    height: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  progressLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: SPACING.xs,
-  },
-  progressLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    fontWeight: "500",
   },
   accentLine: {
     height: 2,
   },
 
-  // Quick Stats
-  quickStats: {
+  // Grid/Rows
+  row: {
     flexDirection: "row",
     gap: SPACING.m,
     marginBottom: SPACING.l,
   },
-  quickStatCard: {
+  halfCard: {
     flex: 1,
     borderRadius: BORDER_RADIUS.l,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
-  quickStatBlur: {
+  blurContainer: {
     overflow: "hidden",
   },
-  quickStatContent: {
+  cardContent: {
     padding: SPACING.m,
   },
-  quickStatHeader: {
+  cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.s,
     marginBottom: SPACING.s,
   },
-  quickStatIcon: {
+  iconBg: {
     width: 32,
     height: 32,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  incomeIcon: {
-    backgroundColor: "rgba(0, 214, 143, 0.12)",
-  },
-  expenseIcon: {
-    backgroundColor: "rgba(255, 71, 87, 0.12)",
-  },
-  quickStatLabel: {
+  cardTitle: {
     fontSize: 13,
     color: COLORS.textSecondary,
     fontWeight: "500",
   },
-  quickStatValue: {
+  cardTitleMuted: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontWeight: "500",
+    marginBottom: SPACING.xs,
+  },
+  cardValue: {
     fontSize: 22,
     fontWeight: "700",
     letterSpacing: -0.5,
   },
-  incomeValue: {
-    color: COLORS.success,
-  },
-  expenseValue: {
+  cardValueSmall: {
+    fontSize: 20,
+    fontWeight: "700",
     color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  dateText: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontWeight: "500",
   },
 
-  // Net Balance Card
-  netBalanceCard: {
+  // Analytics Cards
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: SPACING.m,
+    marginTop: SPACING.s,
+  },
+  analyticsCard: {
     borderRadius: BORDER_RADIUS.l,
     overflow: "hidden",
+    marginBottom: SPACING.l,
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
-  netBalanceBlur: {
-    overflow: "hidden",
+  analyticsContent: {
+    padding: SPACING.l,
   },
-  netBalanceContent: {
+  analyticsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: SPACING.m,
-    paddingBottom: SPACING.s,
+    marginBottom: SPACING.m,
   },
-  netBalanceLeft: {
+  analyticsHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.m,
+    gap: SPACING.s,
   },
-  netBalanceIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "rgba(255, 107, 74, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  netBalanceLabel: {
+  analyticsTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.text,
-    marginBottom: 2,
+    color: COLORS.textSecondary,
   },
-  netBalanceHint: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-  },
-  netBalanceValue: {
-    fontSize: 24,
+  analyticsValue: {
+    fontSize: 32,
     fontWeight: "700",
-    letterSpacing: -0.5,
+    color: COLORS.text,
+    letterSpacing: -1,
   },
-  positiveBalance: {
-    color: COLORS.success,
-  },
-  negativeBalance: {
-    color: COLORS.danger,
-  },
-
-  // Mini Bar
-  miniBarContainer: {
-    paddingHorizontal: SPACING.m,
-    paddingBottom: SPACING.m,
-  },
-  miniBarTrack: {
-    flexDirection: "row",
-    height: 4,
-    borderRadius: 2,
-    overflow: "hidden",
-    marginBottom: SPACING.s,
-  },
-  miniBarIncome: {
-    backgroundColor: COLORS.success,
-  },
-  miniBarExpense: {
-    backgroundColor: COLORS.danger,
-  },
-  miniBarLabels: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: SPACING.l,
-  },
-  miniBarLabelItem: {
+  trendBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.round,
+    gap: 4,
   },
-  miniBarDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  incomeDot: {
-    backgroundColor: COLORS.success,
-  },
-  expenseDot: {
-    backgroundColor: COLORS.danger,
-  },
-  miniBarLabelText: {
+  trendText: {
     fontSize: 12,
+    fontWeight: "600",
+  },
+
+  // Chart
+  chartCard: {
+    borderRadius: BORDER_RADIUS.l,
+    overflow: "hidden",
+    marginBottom: SPACING.l,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+  },
+  chartContent: {
+    padding: SPACING.l,
+  },
+  chartContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    height: 120,
+    marginTop: SPACING.m,
+    paddingTop: 16, // Space for tooltip
+  },
+  barWrapper: {
+    alignItems: "center",
+    flex: 1,
+  },
+  barTooltip: {
+    fontSize: 10,
     color: COLORS.textMuted,
+    marginBottom: 4,
+  },
+  barTrack: {
+    width: 24,
+    height: 100, // Fixed track height
+    backgroundColor: "rgba(255,255,255,0.02)",
+    borderRadius: 6,
+    justifyContent: "flex-end",
+    overflow: "hidden",
+  },
+  barFill: {
+    width: "100%",
+    borderRadius: 6,
+  },
+  barLabel: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    marginTop: SPACING.s,
     fontWeight: "500",
+  },
+  barLabelToday: {
+    color: COLORS.primary,
+    fontWeight: "700",
   },
 
   bottomSpacer: {

@@ -27,7 +27,14 @@ interface ExpenseStore {
   createPlan: (data: { name: string; amount: number; frequency: string; type: 'INCOME' | 'EXPENSE'; category?: string }) => Promise<void>;
   recurringPlans: RecurringPlan[];
   fetchPlans: () => Promise<void>;
-  dashboardStats: { income: number; expense: number; savings: number; savingsRate: number } | null;
+  dashboardStats: { 
+    income: number; 
+    expense: number; 
+    netBalance: number; 
+    daily: { today: number; yesterday: number; percentageChange: number }; 
+    monthlyExtremes: { highest: { date: string; amount: number } | null; lowest: { date: string; amount: number } | null }; 
+    weeklyReport: { day: string; date: string; amount: number }[];
+  } | null;
   fetchDashboardStats: () => Promise<void>;
   scanReceipt: (imageUrl: string) => Promise<any>;
   addTransaction: (data: any) => Promise<void>;
@@ -45,10 +52,10 @@ interface RecurringPlan {
 }
 
 // Replace with your actual local IP if testing on real device, or localhost for simulator
-const API_URL = 'http://192.168.0.177:3000'; // Local Machine IP
+// const API_URL = 'http://192.168.0.177:3000'; // Local Machine IP
 // const API_URL = 'http://10.0.2.2:3000'; // For Android Emulator
 // const API_URL = 'http://localhost:3000'; // For iOS Simulator
-// const API_URL = 'https://smartspend-h9vm.onrender.com'; // Production
+const API_URL = 'https://smartspend-h9vm.onrender.com'; // Render URL
 
 // Helper function to get current user ID
 const getUserId = () => {
@@ -187,14 +194,16 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
     }
   },
   fetchDashboardStats: async () => {
+    set({ loading: true, error: null });
     try {
       const userId = getUserId();
       const response = await fetch(`${API_URL}/dashboard?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
       const data = await response.json();
-      set({ dashboardStats: data });
+      set({ dashboardStats: data, loading: false });
     } catch (error) {
       console.error("Failed to fetch stats", error);
+      set({ loading: false, error: 'Failed to fetch dashboard stats' });
     }
   },
   scanReceipt: async (imageUrl: string) => {

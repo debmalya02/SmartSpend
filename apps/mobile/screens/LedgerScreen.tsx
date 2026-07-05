@@ -128,8 +128,11 @@ export default function LedgerScreen() {
                 onPress={() => handleDelete(item.id)}
                 style={styles.deleteButton}
                 activeOpacity={0.7}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
-                <Trash2 size={14} color={COLORS.danger} />
+                <View pointerEvents="none">
+                  <Trash2 size={14} color={COLORS.danger} />
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -175,12 +178,14 @@ export default function LedgerScreen() {
             style={styles.scanButton}
             onPress={() => setShowScan(true)}
             activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <LinearGradient
               colors={[COLORS.primary, COLORS.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.scanButtonGradient}
+              pointerEvents="none"
             >
               <ScanLine color={COLORS.white} size={22} />
             </LinearGradient>
@@ -360,8 +365,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   deleteButton: {
-    padding: 6,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 10,
     backgroundColor: "rgba(255, 71, 87, 0.1)",
   },
 

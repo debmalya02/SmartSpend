@@ -225,12 +225,14 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         style={styles.voiceButton}
         onPress={startRecording}
         activeOpacity={0.8}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <LinearGradient
           colors={["#8B5CF6", "#A855F7"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.voiceButtonGradient}
+          pointerEvents="none"
         >
           <Mic color={COLORS.white} size={22} />
         </LinearGradient>
@@ -251,8 +253,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                 <Text style={styles.modalTitle}>
                   {isRecording ? "Listening..." : "Voice Input"}
                 </Text>
-                <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
-                  <X color={COLORS.textMuted} size={20} />
+                <TouchableOpacity onPress={handleCancel} style={styles.closeButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <View pointerEvents="none">
+                    <X color={COLORS.textMuted} size={20} />
+                  </View>
                 </TouchableOpacity>
               </View>
 
@@ -265,20 +269,22 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                       { transform: [{ scale: pulseAnim }] },
                     ]}
                   >
-                    <TouchableOpacity onPress={stopRecording} activeOpacity={0.8}>
+                    <TouchableOpacity onPress={stopRecording} activeOpacity={0.8} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                       <LinearGradient
                         colors={["#EF4444", "#DC2626"]}
                         style={styles.recordingButton}
+                        pointerEvents="none"
                       >
                         <MicOff color={COLORS.white} size={32} />
                       </LinearGradient>
                     </TouchableOpacity>
                   </Animated.View>
                 ) : (
-                  <TouchableOpacity onPress={startRecording} activeOpacity={0.8}>
+                  <TouchableOpacity onPress={startRecording} activeOpacity={0.8} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                     <LinearGradient
                       colors={["#8B5CF6", "#A855F7"]}
                       style={styles.recordingButton}
+                      pointerEvents="none"
                     >
                       <Mic color={COLORS.white} size={32} />
                     </LinearGradient>
@@ -353,6 +359,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                         : ["#374151", "#4B5563"]
                     }
                     style={styles.submitButtonGradient}
+                    pointerEvents="none"
                   >
                     {isProcessing ? (
                       <Loader color={COLORS.white} size={18} />

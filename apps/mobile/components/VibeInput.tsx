@@ -46,6 +46,7 @@ export const VibeInput = () => {
               onPress={handleSubmit}
               disabled={loading || !text.trim()}
               activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               {loading ? (
                 <View style={styles.sendButtonInactive}>
@@ -55,11 +56,12 @@ export const VibeInput = () => {
                 <LinearGradient
                   colors={[COLORS.primary, COLORS.secondary]}
                   style={styles.sendButton}
+                  pointerEvents="none"
                 >
                   <Send color={COLORS.white} size={16} />
                 </LinearGradient>
               ) : (
-                <View style={styles.sendButtonInactive}>
+                <View style={styles.sendButtonInactive} pointerEvents="none">
                   <Send color={COLORS.textMuted} size={16} />
                 </View>
               )}

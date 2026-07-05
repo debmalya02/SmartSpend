@@ -168,6 +168,7 @@ export default function ScanReceiptModal({
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientButton}
+                pointerEvents="none"
               >
                 <View style={styles.buttonIconBg}>
                   <Camera color={COLORS.white} size={24} />
@@ -181,7 +182,7 @@ export default function ScanReceiptModal({
               onPress={() => pickImage(false)}
               activeOpacity={0.8}
             >
-              <View style={styles.secondaryButton}>
+              <View style={styles.secondaryButton} pointerEvents="none">
                 <View style={[styles.buttonIconBg, styles.secondaryIconBg]}>
                   <ImageIcon color={COLORS.primary} size={24} />
                 </View>
@@ -334,6 +335,7 @@ export default function ScanReceiptModal({
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.confirmButton}
+                pointerEvents="none"
               >
                 {loading ? (
                   <ActivityIndicator color="white" />
@@ -375,8 +377,10 @@ export default function ScanReceiptModal({
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.handleBar} />
-              <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-                <X color={COLORS.textSecondary} size={20} />
+              <TouchableOpacity style={styles.closeButton} onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <View pointerEvents="none">
+                  <X color={COLORS.textSecondary} size={20} />
+                </View>
               </TouchableOpacity>
             </View>
 
