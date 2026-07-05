@@ -31,15 +31,15 @@ export class DashboardService {
 
     const netBalance = income - expense;
 
-    // 2. Today's and Yesterday's Expense
+    // 2. Today's and Yesterday's Expense (excluding recurring plans)
     const todayResult = await this.prisma.transaction.aggregate({
-      where: { userId, type: 'EXPENSE', date: { gte: todayStart, lte: todayEnd } },
+      where: { userId, type: 'EXPENSE', date: { gte: todayStart, lte: todayEnd }, recurringPlanId: null },
       _sum: { amount: true },
     });
     const todaySpend = todayResult._sum.amount?.toNumber() || 0;
 
     const yesterdayResult = await this.prisma.transaction.aggregate({
-      where: { userId, type: 'EXPENSE', date: { gte: yesterdayStart, lte: yesterdayEnd } },
+      where: { userId, type: 'EXPENSE', date: { gte: yesterdayStart, lte: yesterdayEnd }, recurringPlanId: null },
       _sum: { amount: true },
     });
     const yesterdaySpend = yesterdayResult._sum.amount?.toNumber() || 0;
@@ -52,9 +52,9 @@ export class DashboardService {
     }
     percentageChange = Math.round(percentageChange * 10) / 10;
 
-    // 3. Weekly Report & Monthly Extremes
+    // 3. Weekly Report & Monthly Extremes (excluding recurring plans)
     const monthExpenses = await this.prisma.transaction.findMany({
-      where: { userId, type: 'EXPENSE', date: { gte: startOfMonth, lte: endOfMonth } },
+      where: { userId, type: 'EXPENSE', date: { gte: startOfMonth, lte: endOfMonth }, recurringPlanId: null },
       select: { date: true, amount: true },
     });
 

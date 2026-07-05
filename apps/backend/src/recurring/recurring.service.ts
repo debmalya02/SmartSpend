@@ -31,6 +31,15 @@ export class RecurringService {
     for (const plan of plans) {
       try {
         await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+          // Find or create Category for the transaction
+          const categoryName = plan.category || 'GENERAL';
+          let cat = await tx.category.findUnique({ where: { name: categoryName } });
+          if (!cat) {
+            cat = await tx.category.create({
+              data: { name: categoryName, icon: 'tag', color: '#cccccc' },
+            });
+          }
+
           // 1. Create the transaction
           await tx.transaction.create({
             data: {
@@ -38,11 +47,12 @@ export class RecurringService {
               currency: plan.currency,
               type: plan.type, 
               description: `Recurring: ${plan.name}`,
+              merchant: plan.name,
               date: now,
               isAiGenerated: false,
               userId: plan.userId,
               recurringPlanId: plan.id,
-              // We could link category if we added categoryId to RecurringPlan, but for now leave blank or default
+              categoryId: cat.id,
             },
           });
 
@@ -99,6 +109,15 @@ export class RecurringService {
       },
     });
 
+    // Find or create Category for the transaction
+    const categoryName = data.category || 'GENERAL';
+    let cat = await this.prisma.category.findUnique({ where: { name: categoryName } });
+    if (!cat) {
+      cat = await this.prisma.category.create({
+        data: { name: categoryName, icon: 'tag', color: '#cccccc' },
+      });
+    }
+
     // Create the first transaction IMMEDIATELY so it shows in the Dashboard
     await this.prisma.transaction.create({
       data: {
@@ -106,10 +125,12 @@ export class RecurringService {
         currency: data.currency || 'INR',
         type: data.type,
         description: `Recurring (Initial): ${data.name}`,
+        merchant: data.name,
         date: now,
         isAiGenerated: false,
         userId: data.userId,
         recurringPlanId: plan.id,
+        categoryId: cat.id,
       },
     });
 
